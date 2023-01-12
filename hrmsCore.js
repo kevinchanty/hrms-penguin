@@ -1,4 +1,6 @@
 import fetch, { FormData, Headers } from "node-fetch";
+import * as dotenv from "dotenv";
+dotenv.config();
 
 function sleep(ms) {
   return new Promise((resolve) => {

@@ -13,7 +13,7 @@ const program = new Command();
 
 program
   .name(process.env.npm_package_name)
-  .description("CLI helper to make lifes easiler in a company")
+  .description("CLI helper to make lives easier in a company")
   .version(process.env.npm_package_version)
   .option("-m, --mockCore", "use mock HRMS core, for developing")
   .action(mainAction);
