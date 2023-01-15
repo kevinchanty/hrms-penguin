@@ -1,5 +1,6 @@
 import fetch, { FormData, Headers } from "node-fetch";
 import * as dotenv from "dotenv";
+import { DATE_REGEX } from "./const.js";
 dotenv.config();
 
 function sleep(ms) {
@@ -8,29 +9,37 @@ function sleep(ms) {
   });
 }
 
-const dateRegex = /^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$/;
-
 export class HrmsCore {
-  cookie = "";
-  headers = undefined;
+  #hrmsHost = "";
+  #hrmsUser = "";
+  #hrmsPwd = "";
+  #empNo = "";
+  #cookie = "";
+  #headers = undefined;
   actionItems = [];
   actionItemDates = [];
+
+  constructor(hrmsHost, hrmsUser, hrmsPwd) {
+    this.#hrmsHost = hrmsHost;
+    this.#hrmsUser = hrmsUser;
+    this.#hrmsPwd = hrmsPwd;
+  }
 
   async login() {
     const formData = new FormData();
     formData.set("action", "login");
-    formData.set("fldEmpLoginID", process.env.HRMS_USER);
-    formData.set("fldEmpPwd", process.env.HRMS_PWD);
+    formData.set("fldEmpLoginID", this.#hrmsUser);
+    formData.set("fldEmpPwd", this.#hrmsPwd);
     formData.set("code", undefined);
 
-    const response = await fetch(`${HRMS_HOST}/api/admin/login`, {
+    const response = await fetch(`${this.#hrmsHost}/api/admin/login`, {
       method: "POST",
       body: formData,
     });
 
     if (response.status === 200) {
-      this.cookie = response.headers.raw()["set-cookie"][0];
-      this.headers = new Headers({ Cookie: resCookie });
+      this.#cookie = response.headers.raw()["set-cookie"][0];
+      this.#headers = new Headers({ Cookie: this.#cookie });
     } else {
       throw new Error("HRMS-CORE: Login fail!");
     }
@@ -40,10 +49,10 @@ export class HrmsCore {
     const formData = new FormData();
     formData.set("action", "maincontent");
 
-    const response = await fetch(`${HRMS_HOST}/api/Home/GetAction`, {
+    const response = await fetch(`${this.#hrmsHost}/api/Home/GetAction`, {
       method: "POST",
       body: formData,
-      headers: this.headers,
+      headers: this.#headers,
     });
 
     if (response.status === 200) {
@@ -66,23 +75,44 @@ export class HrmsCore {
     this.actionItems.pop();
     this.actionItemDates = this.actionItems
       .flat()
-      .filter((str) => dateRegex.test(str));
+      .filter((str) => DATE_REGEX.test(str));
   }
 
   async getAttendanceRecord() {}
 
   async getAttendanceAmendRecord() {}
 
-  async amendAttendanceRecord() {
-    const data = {};
-    const formData = new FormData();
-    const response = fetch(
-      `${HRMS_HOST}/api/Home/GetAction/api/Attendance/CreateMissAttendance`,
-      {
-        method: "POST",
-        body: formData,
+  amendAttendanceRecord(date, inHour, inMin, outHour, outMin, remarks) {
+    return new Promise(async (resolve, reject) => {
+      const data = {};
+      const formData = new FormData();
+      formData.set("fldAttID", 0);
+      formData.set("AttDate", date);
+      formData.set("OutDate1", date);
+      formData.set("fldEmpNo", this.#empNo);
+      formData.set("fldStartWorkHour", inHour);
+      formData.set("fldStartWorkMin", inMin);
+      formData.set("fldLunchOutHour", outHour);
+      formData.set("fldLunchOutMin", outMin);
+      formData.set("fldAttRemark", remarks);
+
+      const response = await fetch(
+        `${this.#hrmsHost}/api/Attendance/CreateMissAttendance`,
+        {
+          method: "POST",
+          body: formData,
+          headers: this.#headers,
+        }
+      );
+
+      if (response.status === 200) {
+        resolve();
+      } else {
+        console.log(response);
+
+        reject(`HRMS-CORE: Amend Record Fail ! (${date})`);
       }
-    );
+    });
   }
 }
 

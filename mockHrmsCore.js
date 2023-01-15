@@ -1,5 +1,6 @@
 import fetch, { FormData, Headers } from "node-fetch";
 import chalk from "chalk";
+import { DATE_REGEX } from "./const.js";
 
 function sleep(ms) {
   return new Promise((resolve) => {
@@ -7,12 +8,15 @@ function sleep(ms) {
   });
 }
 
-const dateRegex = /^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$/;
-
 export class MockHrmsCore {
-  cookie = "";
-  headers = undefined;
+  #hrmsHost = "";
+  #hrmsUser = "";
+  #hrmsPwd = "";
+  #cookie = "";
+  #headers = undefined;
   actionItems = [];
+  actionItemDates = [];
+
   sleepTime = 1;
 
   constructor() {
@@ -52,19 +56,14 @@ export class MockHrmsCore {
     this.actionItems.pop();
     this.actionItemDates = this.actionItems
       .flat()
-      .filter((str) => dateRegex.test(str));
+      .filter((str) => DATE_REGEX.test(str));
   }
 
   async getAttendanceRecord() {}
 
   async getAttendanceAmendRecord() {}
 
-  async amendAttendanceRecord() {
-    const data = {};
-    const formData = new FormData();
-    const response = fetch("", {
-      method: "POST",
-      body: formData,
-    });
+  amendAttendanceRecord(date, inHour, inMin, outHour, outMin, remarks) {
+    return Math.random() > 0.5 ? Promise.resolve() : Promise.reject();
   }
 }
