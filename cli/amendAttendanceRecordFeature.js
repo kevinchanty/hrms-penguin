@@ -38,8 +38,8 @@ export async function amendAttendanceRecordFeature(hrmsCore) {
   if (hrmsCore.actionItemDates.length > 0) {
     const { selectedDates } = await inquirer.prompt({
       type: "checkbox",
-      loop: false,
       pageSize: 20,
+
       name: "selectedDates",
       message: "Please selected date :",
       choices: [...hrmsCore.actionItemDates, "manually input"],
@@ -75,7 +75,6 @@ export async function amendAttendanceRecordFeature(hrmsCore) {
   }
 
   // POST to HRMS
-  console.log("amendDates logs:", amendDates);
   const postSpinner = createSpinner("Requesting HRMS...").start();
   let amendResult = [];
 

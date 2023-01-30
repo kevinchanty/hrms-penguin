@@ -1,13 +1,5 @@
 import fetch, { FormData, Headers } from "node-fetch";
-import * as dotenv from "dotenv";
 import { DATE_REGEX } from "./const.js";
-dotenv.config();
-
-function sleep(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 
 export class HrmsCore {
   #hrmsHost = "";
@@ -20,7 +12,10 @@ export class HrmsCore {
   actionItemDates = [];
 
   constructor(hrmsHost, hrmsUser, hrmsPwd) {
-    this.#hrmsHost = hrmsHost;
+    this.#hrmsHost =
+      hrmsHost.at(-1) === "/"
+        ? hrmsHost.slice(0, hrmsHost.length - 1)
+        : hrmsHost;
     this.#hrmsUser = hrmsUser;
     this.#hrmsPwd = hrmsPwd;
   }
@@ -37,7 +32,7 @@ export class HrmsCore {
       body: formData,
     });
 
-    if (response.status === 200) {
+    if (response.status === 200 && response.headers.raw()["set-cookie"]) {
       this.#cookie = response.headers.raw()["set-cookie"][0];
       this.#headers = new Headers({ Cookie: this.#cookie });
     } else {
@@ -115,40 +110,3 @@ export class HrmsCore {
     });
   }
 }
-
-// TO do
-// Batch Submit
-// CLI Interface
-
-/* 
-fldAttID: 
-0
-fldSubmitSuc: 
-fldEmpNo: 
-SF220083
-AttDate: 
-2022-12-19
-fldLocation1: 
-fldStartWorkHour: 
-09
-fldStartWorkMin: 
-00
-OutDate1: 
-2022-12-19
-fldLunchOutHour: 
-18
-fldLunchOutMin: 
-00
-fldLocation2: 
-fldLunchInHour: 
-fldLunchInMin: 
-fldDinnerOutHour: 
-fldDinnerOutMin: 
-fldLocation3: 
-fldDinnerInHour: 
-fldDinnerInMin: 
-fldFinishWorkTimeHour: 
-fldFinishWorkTimeMin: 
-fldAttRemark: 
-WFH 
-*/

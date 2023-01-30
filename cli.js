@@ -1,12 +1,11 @@
 import { Command } from "commander";
-import { checkConfig } from "./cli/checkConfig.js";
+import { getConfig, promptConfig, writeConfig } from "./cli/configFeature.js";
 import inquirer from "inquirer";
 import { createSpinner } from "nanospinner";
-import * as dotenv from "dotenv";
 import amendAttendanceRecordFeature from "./cli/amendAttendanceRecordFeature.js";
 import { HrmsCore } from "./hrmsCore.js";
 import { MockHrmsCore } from "./mockHrmsCore.js";
-dotenv.config();
+
 console.clear();
 
 const program = new Command();
@@ -22,21 +21,41 @@ await program.parseAsync();
 async function mainAction(options) {
   console.log("🐧 HRMS Penguin");
 
-  await checkConfig();
+  const config = await getConfig();
+
+  if (!config.hrmsPwd) {
+    const { hrmsPwd } = await inquirer.prompt({
+      type: "password",
+      name: "hrmsPwd",
+      message: "HRMS Password:",
+    });
+    config.hrmsPwd = hrmsPwd;
+  }
 
   const hrmsCore = options.mockCore
     ? new MockHrmsCore()
-    : new HrmsCore(
-        process.env.HRMS_HOST,
-        process.env.HRMS_USER,
-        process.env.HRMS_PWD
-      );
+    : new HrmsCore(config.hrmsHost, config.hrmsUser, config.hrmsPwd);
+
   const loginSpinner = createSpinner("Logging in to HRMS...").start();
+
   try {
     await hrmsCore.login();
     loginSpinner.success({ text: "Logged in!" });
   } catch (err) {
     loginSpinner.error({ text: err.message });
+
+    const { shouldCreateConfig } = await inquirer.prompt({
+      type: "confirm",
+      name: "shouldCreateConfig",
+      message: "Login failed! Change config?",
+    });
+
+    if (shouldCreateConfig) {
+      const answers = await promptConfig();
+      writeConfig(answers);
+      console.log("Config updated, please try again.");
+    }
+
     process.exit(1);
   }
 
