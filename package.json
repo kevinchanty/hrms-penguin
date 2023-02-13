@@ -6,7 +6,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node cli.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "bundle": "esbuild cli.js --bundle --minify --platform=node --target=node16.19 --outfile=dist/bundle.js",
+    "package": "pkg --target node16-macos-x64,node16-win-x64,node16-macos- dist/bundle.js --out-path dist",
+    "build": "npm run bundle && npm run package"
   },
   "author": "",
   "license": "ISC",
@@ -16,5 +19,9 @@
     "inquirer": "^9.1.4",
     "nanospinner": "^1.1.0",
     "node-fetch": "^3.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.17.8",
+    "pkg": "^5.8.0"
   }
 }
