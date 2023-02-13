@@ -1,7 +1,7 @@
 {
   "name": "hrms-penguin",
   "version": "0.0.1",
-  "description": "CLI helper to make lifes easiler in a company",
+  "description": "CLI helper to make lives easier in a company",
   "type": "module",
   "main": "index.js",
   "scripts": {
