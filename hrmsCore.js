@@ -11,13 +11,14 @@ export class HrmsCore {
   actionItems = [];
   actionItemDates = [];
 
-  constructor(hrmsHost, hrmsUser, hrmsPwd) {
+  constructor(hrmsHost, hrmsUser, hrmsPwd, empNo) {
     this.#hrmsHost =
       hrmsHost.at(-1) === "/"
         ? hrmsHost.slice(0, hrmsHost.length - 1)
         : hrmsHost;
     this.#hrmsUser = hrmsUser;
     this.#hrmsPwd = hrmsPwd;
+    this.#empNo = empNo;
   }
 
   async login() {
@@ -77,19 +78,18 @@ export class HrmsCore {
 
   async getAttendanceAmendRecord() {}
 
-  amendAttendanceRecord(date, inHour, inMin, outHour, outMin, remarks) {
+  amendAttendanceRecord(input) {
     return new Promise(async (resolve, reject) => {
-      const data = {};
       const formData = new FormData();
       formData.set("fldAttID", 0);
-      formData.set("AttDate", date);
-      formData.set("OutDate1", date);
+      formData.set("AttDate", input.date);
+      formData.set("OutDate1", input.date);
       formData.set("fldEmpNo", this.#empNo);
-      formData.set("fldStartWorkHour", inHour);
-      formData.set("fldStartWorkMin", inMin);
-      formData.set("fldLunchOutHour", outHour);
-      formData.set("fldLunchOutMin", outMin);
-      formData.set("fldAttRemark", remarks);
+      formData.set("fldStartWorkHour", input.inHour);
+      formData.set("fldStartWorkMin", input.inMin);
+      formData.set("fldLunchOutHour", input.outHour);
+      formData.set("fldLunchOutMin", input.outMin);
+      formData.set("fldAttRemark", input.remarks);
 
       const response = await fetch(
         `${this.#hrmsHost}/api/Attendance/CreateMissAttendance`,
@@ -103,8 +103,6 @@ export class HrmsCore {
       if (response.status === 200) {
         resolve();
       } else {
-        console.log(response);
-
         reject(`HRMS-CORE: Amend Record Fail ! (${date})`);
       }
     });

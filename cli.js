@@ -34,7 +34,12 @@ async function mainAction(options) {
 
   const hrmsCore = options.mockCore
     ? new MockHrmsCore()
-    : new HrmsCore(config.hrmsHost, config.hrmsUser, config.hrmsPwd);
+    : new HrmsCore(
+        config.hrmsHost,
+        config.hrmsUser,
+        config.hrmsPwd,
+        config.empNo
+      );
 
   const loginSpinner = createSpinner("Logging in to HRMS...").start();
 
@@ -72,7 +77,7 @@ async function mainAction(options) {
 
   switch (feature) {
     case "amendAttendanceRecord":
-      await amendAttendanceRecordFeature(hrmsCore);
+      await amendAttendanceRecordFeature(hrmsCore, config.amendTemplates);
       break;
     case "changeConfig":
       console.log("todo!");

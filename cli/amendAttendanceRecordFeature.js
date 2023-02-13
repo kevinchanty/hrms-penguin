@@ -4,7 +4,7 @@ import { createSpinner } from "nanospinner";
 import os from "os";
 import { DATE_REGEX } from "../const.js";
 
-export async function amendAttendanceRecordFeature(hrmsCore) {
+export async function amendAttendanceRecordFeature(hrmsCore, amendTemplates) {
   // await hrmsCore.getAction();
 
   // Fetch action items from HRMS
@@ -74,6 +74,17 @@ export async function amendAttendanceRecordFeature(hrmsCore) {
     amendDates.push(...inputDates.split(","));
   }
 
+  //Select template
+  const { selectedTemplate } = await inquirer.prompt({
+    type: "list",
+    name: "selectedTemplate",
+    message: "Please select amend template:",
+    choices: amendTemplates.map((template) => ({
+      name: `${template.name} - (${template.inHour}${template.inMin}-${template.outHour}${template.outMin}, ${template.remarks})`,
+      value: template,
+    })),
+  });
+
   // POST to HRMS
   const postSpinner = createSpinner("Requesting HRMS...").start();
   let amendResult = [];
@@ -81,7 +92,7 @@ export async function amendAttendanceRecordFeature(hrmsCore) {
   try {
     const promiseArr = Promise.allSettled(
       amendDates.map((date) =>
-        hrmsCore.amendAttendanceRecord(date, "09", "00", "18", "00", "WFH")
+        hrmsCore.amendAttendanceRecord({ date, ...selectedTemplate })
       )
     );
     amendResult = await promiseArr;
@@ -116,6 +127,7 @@ export async function amendAttendanceRecordFeature(hrmsCore) {
   }
 
   console.log(outCome.output.join(os.EOL));
+  console.log(chalk.inverse.bold("Please double check amend record at HRMS!"));
 }
 
 export default amendAttendanceRecordFeature;

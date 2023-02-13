@@ -10,10 +10,22 @@ export async function getConfig() {
       fs.readFileSync(`${process.cwd()}/hrms-config.json`)
     );
 
-    if (!config.hrmsHost || !config.hrmsUser || !config.staffNo) {
+    if (!config.hrmsHost || !config.hrmsUser || !config.empNo) {
       console.log("❌ Config not completed! Please provide:");
       const answers = await promptConfig();
-      writeConfig(answers);
+      writeConfig({
+        ...answers,
+        amendTemplates: [
+          {
+            name: "WFH",
+            inHour: "09",
+            inMin: "00",
+            outHour: "18",
+            outMin: "00",
+            remarks: "WFH",
+          },
+        ],
+      });
       return answers;
     }
 
@@ -47,9 +59,9 @@ export async function promptConfig(config = {}) {
     // },
     {
       type: "input",
-      name: "staffNo",
+      name: "empNo",
       message: "Staff Number?",
-      default: config.staffNo,
+      default: config.empNo,
     },
   ];
 

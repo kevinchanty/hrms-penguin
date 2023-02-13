@@ -2,8 +2,7 @@
 
 ## TO DO:
 
-- Prompt for employee number
-- Executable
+- Change hrmsCore into promise base
 - Check amend record
 - Check attendance record
 - Check day of date
