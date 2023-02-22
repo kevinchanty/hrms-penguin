@@ -7,8 +7,8 @@
   "scripts": {
     "start": "node cli.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "bundle": "esbuild cli.js --bundle --minify --platform=node --target=node16.19 --outfile=dist/bundle.js",
-    "package": "pkg --target node16-macos-x64,node16-win-x64 dist/bundle.js --out-path dist",
+    "bundle": "esbuild cli.js --bundle --minify --platform=node --target=node16.19 --outfile=dist/HRMS-penguin.js",
+    "package": "pkg --target node16-macos-x64,node16-win-x64 dist/HRMS-penguin.js --out-path dist",
     "build": "npm run bundle && npm run package"
   },
   "author": "",
