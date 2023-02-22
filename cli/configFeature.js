@@ -2,38 +2,46 @@ import inquirer from "inquirer";
 import fs from "fs";
 import path from "path";
 
-const configPath = path.resolve(process.cwd(), "hrms-config.json");
+const configPath = path.resolve(
+  path.dirname(process.execPath),
+  "hrms-config.json"
+);
 
 export async function getConfig() {
   try {
-    let config = JSON.parse(
-      fs.readFileSync(`${process.cwd()}/hrms-config.json`)
-    );
+    let config = JSON.parse(fs.readFileSync(configPath));
 
     if (!config.hrmsHost || !config.hrmsUser || !config.empNo) {
-      console.log("❌ Config not completed! Please provide:");
-      const answers = await promptConfig();
-      writeConfig({
-        ...answers,
-        amendTemplates: [
-          {
-            name: "WFH",
-            inHour: "09",
-            inMin: "00",
-            outHour: "18",
-            outMin: "00",
-            remarks: "WFH",
-          },
-        ],
-      });
-      return answers;
+      throw new Error();
     }
 
     return config;
   } catch (_) {
     console.log("❌ Config not completed! Please provide:");
-    const answers = await promptConfig();
-    writeConfig(answers);
+    let answers = await promptConfig();
+    answers.amendTemplates = [
+      {
+        name: "WFH",
+        inHour: "09",
+        inMin: "00",
+        outHour: "18",
+        outMin: "00",
+        remarks: "WFH",
+      },
+    ];
+    writeConfig({
+      ...answers,
+      amendTemplates: [
+        {
+          name: "WFH",
+          inHour: "09",
+          inMin: "00",
+          outHour: "18",
+          outMin: "00",
+          remarks: "WFH",
+        },
+      ],
+    });
     return answers;
   }
 }
@@ -44,7 +52,7 @@ export async function promptConfig(config = {}) {
       type: "input",
       name: "hrmsHost",
       message: "HRMS Host?",
-      default: config.hrmsHost ?? "hrms.some-company.com.hk",
+      default: config.hrmsHost ?? "https://hrms.some-company.com.hk",
     },
     {
       type: "input",
@@ -71,5 +79,6 @@ export async function promptConfig(config = {}) {
 }
 
 export function writeConfig(config = {}) {
+  console.log("Written config at:", configPath);
   fs.writeFileSync(path.resolve(configPath), JSON.stringify(config, null, 2));
 }
