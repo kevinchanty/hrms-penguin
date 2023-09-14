@@ -1,22 +1,24 @@
 import inquirer from "inquirer";
-import fs from "fs";
 import path from "path";
 
 const configPath = path.resolve(
-  path.dirname(process.execPath),
-  "hrms-config.json"
-);
+  Bun.main,
+  "hrms-config.json",
+)
 
 export async function getConfig() {
   try {
-    let config = JSON.parse(fs.readFileSync(configPath));
+    let config = await Bun.file("hrms-config.json").json();
+    console.log(config)
+    // let config = JSON.parse(fs.readFileSync(configPath));
 
     if (!config.hrmsHost || !config.hrmsUser || !config.empNo) {
       throw new Error();
     }
 
     return config;
-  } catch (_) {
+  } catch (Err) {
+    throw Err
     console.log("❌ Config not completed! Please provide:");
     let answers = await promptConfig();
     answers.amendTemplates = [

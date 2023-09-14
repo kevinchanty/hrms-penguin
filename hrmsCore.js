@@ -37,7 +37,9 @@ export class HrmsCore {
       this.#cookie = response.headers.raw()["set-cookie"][0];
       this.#headers = new Headers({ Cookie: this.#cookie });
     } else {
+      console.log(response);
       throw new Error("HRMS-CORE: Login fail!");
+
     }
   }
 
