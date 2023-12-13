@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"hrms-penguin/internal/hrms"
+	"log"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joho/godotenv"
 )
 
 type model struct {
@@ -12,6 +15,8 @@ type model struct {
 	cursor   int
 	selected map[int]struct{}
 }
+
+type formModal str
 
 func initialModel() model {
 	return model{
@@ -73,10 +78,35 @@ func (m model) View() string {
 	return s
 }
 
-func main() {
-	p := tea.NewProgram(initialModel())
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error occurred: %v", err)
-		os.Exit(1)
+func testClient() {
+	// hrmsClient := hrms.Client{Host: ""}
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
 	}
+
+	hrmsHost := os.Getenv("HRMS_HOST")
+	hrmsUser := os.Getenv("HRMS_USER")
+	hrmsPwd := os.Getenv("HRMS_USER")
+
+	client := hrms.New(hrms.ClientOption{
+		Host:     hrmsHost,
+		UserName: hrmsUser,
+		Pwd:      hrmsPwd,
+	})
+
+	client.Login()
+	client.GetAction()
+
+	// p := tea.NewProgram(initialModel())
+	// if _, err := p.Run(); err != nil {
+	// 	fmt.Printf("Error occurred: %v", err)
+	// 	os.Exit(1)
+	// }
+
+}
+
+func main() {
+
 }
