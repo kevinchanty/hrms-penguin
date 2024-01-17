@@ -1,4 +1,4 @@
-package hrms
+package main
 
 import (
 	"fmt"
@@ -26,7 +26,7 @@ type ClientOption struct {
 	Pwd      string
 }
 
-func New(option ClientOption) *Client {
+func NewClient(option ClientOption) *Client {
 	// http client
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {

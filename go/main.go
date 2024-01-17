@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -26,13 +25,14 @@ func DefaultStyles() *Styles {
 }
 
 type Model struct {
-	choices     []string
-	cursor      int
-	selected    map[int]struct{}
-	answerField textinput.Model
-	styles      *Styles
-	width       int
-	height      int
+	choices        []string
+	cursor         int
+	selected       map[int]struct{}
+	answerField    textinput.Model
+	textInputValue string
+	styles         *Styles
+	width          int // for storing windows width at init
+	height         int // for storing windows height at init
 }
 
 func New() *Model {
@@ -54,6 +54,7 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -78,6 +79,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.selected[m.cursor] = struct{}{}
 			}
+			m.textInputValue = m.answerField.Value()
+			m.answerField.SetValue("")
 		}
 	}
 
@@ -104,6 +107,8 @@ func (m Model) View() string {
 
 	s += "\nPress q to quit.\n"
 
+	s += "\n" + m.textInputValue
+
 	return lipgloss.Place(
 		m.width,
 		m.height,
@@ -121,14 +126,16 @@ func (m Model) View() string {
 }
 
 func main() {
-	f, err := tea.LogToFile("debug.log", "debug")
-	if err != nil {
-		log.Fatal("err: %w", err)
-	}
-	defer f.Close()
+	// f, err := tea.LogToFile("debug.log", "debug")
+	// if err != nil {
+	// 	log.Fatal("err: %w", err)
+	// }
+	// defer f.Close()
 
-	p := tea.NewProgram(New())
-	if _, err := p.Run(); err != nil {
-		log.Fatal(err)
-	}
+	// p := tea.NewProgram(New())
+	// if _, err := p.Run(); err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	client := NewClient()
 }
