@@ -3,14 +3,15 @@ module hrms-penguin
 go 1.21.5
 
 require (
+	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/charmbracelet/bubbletea v0.25.0
 	github.com/charmbracelet/lipgloss v0.9.1
 	github.com/charmbracelet/log v0.3.1
-	github.com/joho/godotenv v1.5.1
 	golang.org/x/net v0.20.0
 )
 
 require (
+	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 )

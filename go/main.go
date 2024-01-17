@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 )
 
 type Styles struct {
@@ -126,16 +127,29 @@ func (m Model) View() string {
 }
 
 func main() {
-	// f, err := tea.LogToFile("debug.log", "debug")
-	// if err != nil {
-	// 	log.Fatal("err: %w", err)
-	// }
-	// defer f.Close()
+	f, err := tea.LogToFile("debug.log", "debug")
+	if err != nil {
+		log.Fatal("err: %w", err)
+	}
+	defer f.Close()
 
+	// tea
 	// p := tea.NewProgram(New())
 	// if _, err := p.Run(); err != nil {
 	// 	log.Fatal(err)
 	// }
 
-	client := NewClient()
+	// actual client
+	client := NewHrmsClient(ClientOption{
+		Host:     "https://hrms.hktv.com.hk",
+		UserName: "tychan",
+		Pwd:      "196HRMS=",
+	})
+	// client.Login()
+	// client.GetAction()
+
+	// client parsing
+	client.ParseMainAction(haha)
 }
+
+var haha string = "<p>Missing Attendance record 欠缺出入勤紀錄:<br /> 2023-12-21<br />2023-12-28<br />2024-01-08<br />2024-01-11<br />2024-01-12<br />2024-01-15</p><p>Early leave:<br /> 2023-12-18<br />2024-01-17</p><p>Lateness 遲到:<br /> 2023-12-18<br />2024-01-04</p>"
