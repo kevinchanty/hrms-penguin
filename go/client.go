@@ -89,7 +89,7 @@ func (c *HrmsClient) GetAction() *Action {
 	}
 	res.Body.Close()
 
-	return c.ParseMainAction(string(body))
+	return ParseMainAction(string(body))
 }
 
 type Action struct {
@@ -99,7 +99,7 @@ type Action struct {
 }
 
 // Trying to use HTML parser as it may be useful for other endpoints
-func (c *HrmsClient) ParseMainAction(actionStr string) *Action {
+func ParseMainAction(actionStr string) *Action {
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(actionStr))
 	if err != nil {
@@ -121,7 +121,7 @@ func (c *HrmsClient) ParseMainAction(actionStr string) *Action {
 				return
 			}
 
-			switch text := s.Text(); text {
+			switch text := strings.TrimSpace(s.Text()); text {
 			case "Missing Attendance record 欠缺出入勤紀錄:":
 				currentArray = &action.missAttendance
 			case "Early leave:":
@@ -134,6 +134,5 @@ func (c *HrmsClient) ParseMainAction(actionStr string) *Action {
 		})
 	})
 
-	fmt.Print(action)
 	return &action
 }
