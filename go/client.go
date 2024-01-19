@@ -72,7 +72,7 @@ func (c *HrmsClient) Login() {
 	}
 }
 
-func (c *HrmsClient) GetAction() {
+func (c *HrmsClient) GetAction() *Action {
 	c.logger.Debug("GetAction Start")
 
 	formData := url.Values{}
@@ -89,7 +89,7 @@ func (c *HrmsClient) GetAction() {
 	}
 	res.Body.Close()
 
-	c.logger.Infof("%s", body)
+	return c.ParseMainAction(string(body))
 }
 
 type Action struct {
@@ -99,30 +99,41 @@ type Action struct {
 }
 
 // Trying to use HTML parser as it may be useful for other endpoints
-func (c *HrmsClient) ParseMainAction(actionStr string) Action {
+func (c *HrmsClient) ParseMainAction(actionStr string) *Action {
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(actionStr))
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	action := Action{
+		missAttendance: make([]string, 0, 31),
+		earlyLeave:     make([]string, 0, 31),
+		lateness:       make([]string, 0, 31),
+	}
+
 	// Find the review items
 	doc.Find("p").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the title
-
+		var currentArray *[]string
 		s.Contents().Each(func(i int, s *goquery.Selection) {
-			if !s.Is("br") {
-				fmt.Println(strings.TrimSpace(s.Text()))
+			if s.Is("br") {
+				return
 			}
-			// if s.Text() == "Miss Attendance" {
-			// 	c.missAttendance = append(c.missAttendance, title)
-			// } else if s.Text() == "Early Leave" {
-			// 	c.earlyLeave = append(c.earlyLeave, title)
-			// } else if s.Text() == "Lateness" {
-			// 	c.lateness = append(c.lateness, title)
-			// }
+
+			switch text := s.Text(); text {
+			case "Missing Attendance record 欠缺出入勤紀錄:":
+				currentArray = &action.missAttendance
+			case "Early leave:":
+				currentArray = &action.earlyLeave
+			case "Lateness 遲到:":
+				currentArray = &action.lateness
+			default:
+				*currentArray = append(*currentArray, text)
+			}
 		})
 	})
 
-	return Action{}
+	fmt.Print(action)
+	return &action
 }

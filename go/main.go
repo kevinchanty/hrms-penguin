@@ -145,11 +145,11 @@ func main() {
 		UserName: "tychan",
 		Pwd:      "196HRMS=",
 	})
-	// client.Login()
-	// client.GetAction()
+	client.Login()
+	client.GetAction()
 
 	// client parsing
-	client.ParseMainAction(haha)
+	// client.ParseMainAction(haha)
 }
 
 var haha string = "<p>Missing Attendance record 欠缺出入勤紀錄:<br /> 2023-12-21<br />2023-12-28<br />2024-01-08<br />2024-01-11<br />2024-01-12<br />2024-01-15</p><p>Early leave:<br /> 2023-12-18<br />2024-01-17</p><p>Lateness 遲到:<br /> 2023-12-18<br />2024-01-04</p>"
