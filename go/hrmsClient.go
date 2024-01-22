@@ -137,7 +137,8 @@ func ParseMainAction(actionStr string) *Action {
 	return &action
 }
 
-// {"2023-12-31". "Missing Attendance record 欠缺出入勤紀錄"}
+// todo: combine same date with 2 types, map and transform
+// {"2023-12-31". "Missing Attendance record 欠缺出入勤紀錄, Lateness 遲到"}
 func ParseMainActionForTable(actionStr string) [][]string {
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(actionStr))

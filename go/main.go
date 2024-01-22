@@ -1,10 +1,9 @@
 package main
 
 import (
-	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
 	"github.com/charmbracelet/log"
 )
 
@@ -24,25 +23,29 @@ func DefaultStyles() *Styles {
 	return s
 }
 
+var baseStyle = lipgloss.NewStyle().
+	BorderStyle(lipgloss.NormalBorder()).
+	BorderForeground(lipgloss.Color("240"))
+
 type Model struct {
 	width  int // for storing windows width at init
 	height int // for storing windows height at init
 
-	actions       [][]string
-	actionTable   table.Table
+	actionTable   table.Model
+	actionRows    []table.Row
 	isActionReady bool
 
-	answerField    textinput.Model
-	textInputValue string
-	textInputStyle *Styles
+	mainStyle lipgloss.Style
 }
 
 func New() *Model {
-	answerField := textinput.New()
-	answerField.Placeholder = "I am your placeholder"
-	answerField.Focus()
+	mainStyle := lipgloss.NewStyle().Padding(1)
 
-	sampleAction := [][]string{
+	// answerField := textinput.New()
+	// answerField.Placeholder = "I am your placeholder"
+	// answerField.Focus()
+
+	sampleAction := []table.Row{
 		{"2023-12-21", "Missing Attendance record 欠缺出入勤紀錄"}, {"2023-12-28", "Missing Attendance record 欠缺出入勤紀錄"},
 		{"2024-01-08", "Missing Attendance record 欠缺出入勤紀錄"}, {"2024-01-11", "Missing Attendance record 欠缺出入勤紀錄"},
 		{"2024-01-12", "Missing Attendance record 欠缺出入勤紀錄"}, {"2024-01-15", "Missing Attendance record 欠缺出入勤紀錄"}, {"2023-12-18", "Early leave"},
@@ -50,21 +53,35 @@ func New() *Model {
 		{"2023-12-18", "Lateness 遲到"},
 		{"2024-01-04", "Lateness 遲到"}}
 
-	actionTable := table.New().
-		Border(lipgloss.Border{}).
-		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("99"))).
-		Headers([]string{"Date", "Type"}...).
-		Rows(sampleAction...).
-		StyleFunc(func(row, col int) lipgloss.Style {
-			return lipgloss.NewStyle().Padding(0, 1)
-		})
+	actionsColumn := []table.Column{
+		{Title: "Date", Width: 10},
+		{Title: "type", Width: 30},
+	}
+
+	actionTable := table.New(
+		table.WithColumns(actionsColumn),
+		table.WithRows(sampleAction),
+		table.WithFocused(true),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(false)
+	s.Selected = s.Selected.
+		Background(lipgloss.Color("212"))
+	// Background(lipgloss.Color("0"))
+	actionTable.SetStyles(s)
 
 	return &Model{
-		answerField:    answerField,
-		isActionReady:  false,
-		textInputStyle: DefaultStyles(),
-		actions:        sampleAction,
-		actionTable:    *actionTable,
+		mainStyle: mainStyle,
+
+		// answerField:    answerField,
+		isActionReady: false,
+		actionRows:    sampleAction,
+		actionTable:   actionTable,
 	}
 }
 
@@ -79,11 +96,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.actionTable.SetColumns(
+			[]table.Column{
+				{Title: "Date", Width: 10},
+				{Title: "Type", Width: msg.Width - 20},
+			})
+		m.actionTable.SetHeight(msg.Height - 5)
 	case tea.KeyMsg:
 		switch msg.String() {
 		// case "ctrl+c", "q":
 		case "ctrl+c":
 			return m, tea.Quit
+
+		case "enter":
+			return m, tea.Batch(
+				tea.Printf("Let's go to %s!", m.actionTable.SelectedRow()[1]),
+			)
 
 			// case "up", "k":
 			// 	if m.cursor > 0 {
@@ -105,22 +133,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	m.answerField, cmd = m.answerField.Update(msg)
+	m.actionTable, cmd = m.actionTable.Update(msg)
 	return m, cmd
 }
 
 func (m Model) View() string {
+	title := " 🐧 HRMS Penguin"
 
 	return lipgloss.Place(
 		m.width,
 		m.height,
 		lipgloss.Center,
 		lipgloss.Center,
-		lipgloss.JoinVertical(
-			lipgloss.Center,
-			m.actionTable.Render(),
-			m.textInputStyle.InputField.Render(
-				m.answerField.View(),
+		baseStyle.Render(
+			lipgloss.JoinVertical(
+				lipgloss.Left,
+				title,
+				m.actionTable.View(),
 			),
 		),
 	)
