@@ -136,3 +136,40 @@ func ParseMainAction(actionStr string) *Action {
 
 	return &action
 }
+
+// {"2023-12-31". "Missing Attendance record 欠缺出入勤紀錄"}
+func ParseMainActionForTable(actionStr string) [][]string {
+	// Load the HTML document
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(actionStr))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rows := [][]string{}
+
+	// Find the review items
+	doc.Find("p").Each(func(i int, s *goquery.Selection) {
+		// For each item found, get the title
+		var currentType string
+
+		s.Contents().Each(func(i int, s *goquery.Selection) {
+			if s.Is("br") {
+				return
+			}
+
+			switch text := strings.TrimSpace(s.Text()); text {
+			case "Missing Attendance record 欠缺出入勤紀錄:":
+				currentType = "Missing Attendance record 欠缺出入勤紀錄"
+			case "Early leave:":
+				currentType = "Early leave"
+			case "Lateness 遲到:":
+				currentType = "Lateness 遲到"
+			default:
+				rows = append(rows, []string{text, currentType})
+			}
+		})
+	})
+
+	println(rows)
+	return rows
+}

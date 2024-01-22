@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/charmbracelet/log"
 )
 
@@ -27,11 +28,13 @@ type Model struct {
 	width  int // for storing windows width at init
 	height int // for storing windows height at init
 
-	action Action
+	actions       [][]string
+	actionTable   table.Table
+	isActionReady bool
 
 	answerField    textinput.Model
 	textInputValue string
-	styles         *Styles
+	textInputStyle *Styles
 }
 
 func New() *Model {
@@ -39,9 +42,19 @@ func New() *Model {
 	answerField.Placeholder = "I am your placeholder"
 	answerField.Focus()
 
+	sampleAction := [][]string{
+		{"2023-12-21", "Missing Attendance record 欠缺出入勤紀錄"}, {"2023-12-28", "Missing Attendance record 欠缺出入勤紀錄"},
+		{"2024-01-08", "Missing Attendance record 欠缺出入勤紀錄"}, {"2024-01-11", "Missing Attendance record 欠缺出入勤紀錄"},
+		{"2024-01-12", "Missing Attendance record 欠缺出入勤紀錄"}, {"2024-01-15", "Missing Attendance record 欠缺出入勤紀錄"}, {"2023-12-18", "Early leave"},
+		{"2024-01-17", "Early leave"},
+		{"2023-12-18", "Lateness 遲到"},
+		{"2024-01-04", "Lateness 遲到"}}
+
 	return &Model{
-		answerField: answerField,
-		styles:      DefaultStyles(),
+		answerField:    answerField,
+		isActionReady:  false,
+		textInputStyle: DefaultStyles(),
+		actions:        sampleAction,
 	}
 }
 
@@ -57,28 +70,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 	case tea.KeyMsg:
-		// switch msg.String() {
+		switch msg.String() {
 		// case "ctrl+c", "q":
-		// 	return m, tea.Quit
+		case "ctrl+c":
+			return m, tea.Quit
 
-		// case "up", "k":
-		// 	if m.cursor > 0 {
-		// 		m.cursor--
-		// 	}
-		// case "down", "j":
-		// 	if m.cursor < len(m.choices)-1 {
-		// 		m.cursor++
-		// 	}
-		// case "enter", " ":
-		// 	_, ok := m.selected[m.cursor]
-		// 	if ok {
-		// 		delete(m.selected, m.cursor)
-		// 	} else {
-		// 		m.selected[m.cursor] = struct{}{}
-		// 	}
-		// 	m.textInputValue = m.answerField.Value()
-		// 	m.answerField.SetValue("")
-		// }
+			// case "up", "k":
+			// 	if m.cursor > 0 {
+			// 		m.cursor--
+			// 	}
+			// case "down", "j":
+			// 	if m.cursor < len(m.choices)-1 {
+			// 		m.cursor++
+			// 	}
+			// case "enter", " ":
+			// 	_, ok := m.selected[m.cursor]
+			// 	if ok {
+			// 		delete(m.selected, m.cursor)
+			// 	} else {
+			// 		m.selected[m.cursor] = struct{}{}
+			// 	}
+			// 	m.textInputValue = m.answerField.Value()
+			// 	m.answerField.SetValue("")
+		}
 	}
 
 	m.answerField, cmd = m.answerField.Update(msg)
@@ -86,7 +100,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	s := "Your Main Action?\n\n"
+	actionStr := "Your Main Action:\n\n"
+
+	actionStr += ""
+	for _, s := range m.actions.missAttendance {
+		actionStr += s
+		actionStr += "\n"
+	}
 
 	return lipgloss.Place(
 		m.width,
@@ -95,8 +115,8 @@ func (m Model) View() string {
 		lipgloss.Center,
 		lipgloss.JoinVertical(
 			lipgloss.Center,
-			s,
-			m.styles.InputField.Render(
+			actionStr,
+			m.textInputStyle.InputField.Render(
 				m.answerField.View(),
 			),
 		),
@@ -110,15 +130,6 @@ func main() {
 		log.Fatal("err: %w", err)
 	}
 	defer f.Close()
-
-	want := &Action{
-		missAttendance: make([]string, 0, 31),
-		earlyLeave:     make([]string, 0, 31),
-		lateness:       make([]string, 0, 31),
-	}
-	want.missAttendance = append(want.missAttendance, "2023-12-21", "2023-12-28", "2024-01-08", "2024-01-11", "2024-01-12", "2024-01-15")
-	want.earlyLeave = append(want.earlyLeave, "2023-12-18", "2024-01-17")
-	want.lateness = append(want.lateness, "2023-12-18", "2024-01-04")
 
 	// tea
 	p := tea.NewProgram(New())
