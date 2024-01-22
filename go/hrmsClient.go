@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 
@@ -35,7 +36,7 @@ func NewHrmsClient(option ClientOption) *HrmsClient {
 	if err != nil {
 		log.Fatal(err)
 	}
-	client := &http.Client{Jar: jar}
+	client := &http.Client{Jar: jar, Timeout: 60 * time.Second}
 
 	// logger
 	logger := log.NewWithOptions(os.Stderr, log.Options{
@@ -72,7 +73,7 @@ func (c *HrmsClient) Login() {
 	}
 }
 
-func (c *HrmsClient) GetAction() *Action {
+func (c *HrmsClient) GetAction() [][]string {
 	c.logger.Debug("GetAction Start")
 
 	formData := url.Values{}
@@ -89,7 +90,7 @@ func (c *HrmsClient) GetAction() *Action {
 	}
 	res.Body.Close()
 
-	return ParseMainAction(string(body))
+	return ParseMainActionForTable(string(body))
 }
 
 type Action struct {

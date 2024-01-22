@@ -1,27 +1,16 @@
 package main
 
 import (
+	"slices"
+
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 )
 
-type Styles struct {
-	BorderColor lipgloss.Color
-	InputField  lipgloss.Style
-}
-
-func DefaultStyles() *Styles {
-	s := new(Styles)
-	s.BorderColor = lipgloss.Color("36")
-	s.InputField = lipgloss.NewStyle().
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(s.BorderColor).
-		Padding(1).
-		Width(90)
-	return s
-}
+var tableXOffset int = 20
+var tableYOffset int = 6
 
 var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
@@ -33,6 +22,7 @@ type Model struct {
 
 	actionTable   table.Model
 	actionRows    []table.Row
+	selectedDate  []string
 	isActionReady bool
 
 	mainStyle lipgloss.Style
@@ -41,26 +31,24 @@ type Model struct {
 func New() *Model {
 	mainStyle := lipgloss.NewStyle().Padding(1)
 
-	// answerField := textinput.New()
-	// answerField.Placeholder = "I am your placeholder"
-	// answerField.Focus()
-
-	sampleAction := []table.Row{
+	actionRows := []table.Row{
 		{"2023-12-21", "Missing Attendance record 欠缺出入勤紀錄"}, {"2023-12-28", "Missing Attendance record 欠缺出入勤紀錄"},
-		{"2024-01-08", "Missing Attendance record 欠缺出入勤紀錄"}, {"2024-01-11", "Missing Attendance record 欠缺出入勤紀錄"},
-		{"2024-01-12", "Missing Attendance record 欠缺出入勤紀錄"}, {"2024-01-15", "Missing Attendance record 欠缺出入勤紀錄"}, {"2023-12-18", "Early leave"},
-		{"2024-01-17", "Early leave"},
-		{"2023-12-18", "Lateness 遲到"},
-		{"2024-01-04", "Lateness 遲到"}}
+		// {"2024-01-08", "Missing Attendance record 欠缺出入勤紀錄"}, {"2024-01-11", "Missing Attendance record 欠缺出入勤紀錄"},
+		// {"2024-01-12", "Missing Attendance record 欠缺出入勤紀錄"}, {"2024-01-15", "Missing Attendance record 欠缺出入勤紀錄"},
+		// {"2023-12-18", "Early leave"},
+		// {"2024-01-17", "Early leave"},
+		// {"2023-12-18", "Lateness 遲到"},
+		// {"2024-01-04", "Lateness 遲到"},
+	}
 
 	actionsColumn := []table.Column{
 		{Title: "Date", Width: 10},
-		{Title: "type", Width: 30},
+		{Title: "type", Width: 60},
 	}
 
 	actionTable := table.New(
 		table.WithColumns(actionsColumn),
-		table.WithRows(sampleAction),
+		table.WithRows(actionRows),
 		table.WithFocused(true),
 	)
 
@@ -80,8 +68,9 @@ func New() *Model {
 
 		// answerField:    answerField,
 		isActionReady: false,
-		actionRows:    sampleAction,
+		actionRows:    actionRows,
 		actionTable:   actionTable,
+		selectedDate:  []string{},
 	}
 }
 
@@ -99,9 +88,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.actionTable.SetColumns(
 			[]table.Column{
 				{Title: "Date", Width: 10},
-				{Title: "Type", Width: msg.Width - 20},
+				{Title: "Type", Width: msg.Width - tableXOffset},
 			})
-		m.actionTable.SetHeight(msg.Height - 5)
+		m.actionTable.SetHeight(msg.Height - tableYOffset)
 	case tea.KeyMsg:
 		switch msg.String() {
 		// case "ctrl+c", "q":
@@ -109,9 +98,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "enter":
-			return m, tea.Batch(
-				tea.Printf("Let's go to %s!", m.actionTable.SelectedRow()[1]),
-			)
+			if i := slices.Index(m.selectedDate, m.actionTable.SelectedRow()[0]); i > -1 {
+				m.selectedDate = slices.Delete(m.selectedDate, i, i+1)
+			} else {
+				m.selectedDate = append(m.selectedDate, m.actionTable.SelectedRow()[0])
+			}
+			return m, cmd
 
 			// case "up", "k":
 			// 	if m.cursor > 0 {
@@ -138,7 +130,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	title := " 🐧 HRMS Penguin"
+	title := " 🐧 HRMS Penguin - Amend Attendance Record"
+
+	selectedDateStr := "Selected:"
+
+	for i, date := range m.selectedDate {
+		if i == 0 {
+			selectedDateStr = selectedDateStr + " " + date
+		} else {
+			selectedDateStr = selectedDateStr + ", " + date
+		}
+	}
 
 	return lipgloss.Place(
 		m.width,
@@ -150,6 +152,7 @@ func (m Model) View() string {
 				lipgloss.Left,
 				title,
 				m.actionTable.View(),
+				selectedDateStr,
 			),
 		),
 	)
@@ -163,20 +166,25 @@ func main() {
 	}
 	defer f.Close()
 
+	modal := New()
 	// tea
-	p := tea.NewProgram(New())
+	p := tea.NewProgram(modal)
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}
 
 	// actual client
 	// client := NewHrmsClient(ClientOption{
-	// 	Host:     "https://hrms.hktv.com.hk",
+	// 	// Host:     "https://hrms.hktv.com.hk",
+	// 	Host:     "http://localhost:8080",
 	// 	UserName: "tychan",
 	// 	Pwd:      "196HRMS=",
 	// })
 	// client.Login()
-	// client.GetAction()
+	// actions := client.GetAction()
+
+	modal.actionRows = append(modal.actionRows, []table.Row{{"2023-12-21", "Missing Attendance record 欠缺出入勤紀錄"}, {"2023-12-21", "Missing Attendance record 欠缺出入勤紀錄"}, {"2023-12-21", "Missing Attendance record 欠缺出入勤紀錄"}}...)
+	p.Run()
 
 	// client parsing
 	// client.ParseMainAction(haha)
