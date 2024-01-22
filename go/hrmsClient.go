@@ -73,24 +73,24 @@ func (c *HrmsClient) Login() {
 	}
 }
 
-func (c *HrmsClient) GetAction() [][]string {
+func (c *HrmsClient) GetAction() ([][]string, error) {
 	c.logger.Debug("GetAction Start")
 
 	formData := url.Values{}
 	formData.Set("action", "maincontent")
 	res, err := c.httpClient.PostForm(fmt.Sprintf("%s/api/Home/GetAction", c.host), formData)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	c.logger.Debugf("StatusCode: %d", res.StatusCode)
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		c.logger.Fatal(err)
+		return nil, err
 	}
 	res.Body.Close()
 
-	return ParseMainActionForTable(string(body))
+	return ParseMainActionForTable(string(body)), nil
 }
 
 type Action struct {

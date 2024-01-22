@@ -74,8 +74,27 @@ func New() *Model {
 	}
 }
 
+func getAction(c HrmsClient) tea.Cmd {
+	return func() tea.Msg {
+		// assumed login
+		actions, err := c.GetAction()
+		if err != nil {
+			return errMsg{err: err}
+		}
+		return actionMsg(actions)
+	}
+}
+
+type actionMsg [][]string
+
+type errMsg struct{ err error }
+
+// For messages that contain errors it's often handy to also implement the
+// error interface on the message.
+func (e errMsg) Error() string { return e.err.Error() }
+
 func (m Model) Init() tea.Cmd {
-	return nil
+	return getAction(m)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
