@@ -50,11 +50,21 @@ func New() *Model {
 		{"2023-12-18", "Lateness 遲到"},
 		{"2024-01-04", "Lateness 遲到"}}
 
+	actionTable := table.New().
+		Border(lipgloss.Border{}).
+		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("99"))).
+		Headers([]string{"Date", "Type"}...).
+		Rows(sampleAction...).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			return lipgloss.NewStyle().Padding(0, 1)
+		})
+
 	return &Model{
 		answerField:    answerField,
 		isActionReady:  false,
 		textInputStyle: DefaultStyles(),
 		actions:        sampleAction,
+		actionTable:    *actionTable,
 	}
 }
 
@@ -100,13 +110,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	actionStr := "Your Main Action:\n\n"
-
-	actionStr += ""
-	for _, s := range m.actions.missAttendance {
-		actionStr += s
-		actionStr += "\n"
-	}
 
 	return lipgloss.Place(
 		m.width,
@@ -115,7 +118,7 @@ func (m Model) View() string {
 		lipgloss.Center,
 		lipgloss.JoinVertical(
 			lipgloss.Center,
-			actionStr,
+			m.actionTable.Render(),
 			m.textInputStyle.InputField.Render(
 				m.answerField.View(),
 			),
