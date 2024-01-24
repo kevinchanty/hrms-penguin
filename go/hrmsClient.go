@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/table"
+
 	"github.com/PuerkitoBio/goquery"
 
 	"github.com/charmbracelet/log"
@@ -73,7 +75,7 @@ func (c *HrmsClient) Login() {
 	}
 }
 
-func (c *HrmsClient) GetAction() ([][]string, error) {
+func (c *HrmsClient) GetAction() ([]table.Row, error) {
 	c.logger.Debug("GetAction Start")
 
 	formData := url.Values{}
@@ -140,14 +142,14 @@ func ParseMainAction(actionStr string) *Action {
 
 // todo: combine same date with 2 types, map and transform
 // {"2023-12-31". "Missing Attendance record 欠缺出入勤紀錄, Lateness 遲到"}
-func ParseMainActionForTable(actionStr string) [][]string {
+func ParseMainActionForTable(actionStr string) []table.Row {
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(actionStr))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	rows := [][]string{}
+	rows := []table.Row{}
 
 	// Find the review items
 	doc.Find("p").Each(func(i int, s *goquery.Selection) {
@@ -167,7 +169,7 @@ func ParseMainActionForTable(actionStr string) [][]string {
 			case "Lateness 遲到:":
 				currentType = "Lateness 遲到"
 			default:
-				rows = append(rows, []string{text, currentType})
+				rows = append(rows, table.Row{text, currentType})
 			}
 		})
 	})

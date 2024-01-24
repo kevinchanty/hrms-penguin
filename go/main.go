@@ -1,12 +1,12 @@
 package main
 
 import (
+	"log"
 	"slices"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
 )
 
 var tableXOffset int = 20
@@ -19,6 +19,8 @@ var baseStyle = lipgloss.NewStyle().
 type Model struct {
 	width  int // for storing windows width at init
 	height int // for storing windows height at init
+
+	hrmsClient HrmsClient
 
 	actionTable   table.Model
 	actionRows    []table.Row
@@ -60,11 +62,22 @@ func New() *Model {
 		Bold(false)
 	s.Selected = s.Selected.
 		Background(lipgloss.Color("212"))
-	// Background(lipgloss.Color("0"))
 	actionTable.SetStyles(s)
+
+	// actual client
+	hrmsClient := NewHrmsClient(ClientOption{
+		// Host:     "https://hrms.hktv.com.hk",
+		Host:     "http://localhost:8080",
+		UserName: "tychan",
+		Pwd:      "196HRMS=",
+	})
+	// client.Login()
+	// actions := client.GetAction()
 
 	return &Model{
 		mainStyle: mainStyle,
+
+		hrmsClient: *hrmsClient,
 
 		// answerField:    answerField,
 		isActionReady: false,
@@ -85,7 +98,7 @@ func getAction(c HrmsClient) tea.Cmd {
 	}
 }
 
-type actionMsg [][]string
+type actionMsg []table.Row
 
 type errMsg struct{ err error }
 
@@ -94,7 +107,7 @@ type errMsg struct{ err error }
 func (e errMsg) Error() string { return e.err.Error() }
 
 func (m Model) Init() tea.Cmd {
-	return getAction(m)
+	return getAction(m.hrmsClient)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -110,13 +123,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				{Title: "Type", Width: msg.Width - tableXOffset},
 			})
 		m.actionTable.SetHeight(msg.Height - tableYOffset)
+	case actionMsg:
+		m.actionTable.SetRows(msg)
+		return m, nil
+	case errMsg:
+		log.Printf("%s\n", msg.err)
+		return m, tea.Quit
 	case tea.KeyMsg:
 		switch msg.String() {
 		// case "ctrl+c", "q":
 		case "ctrl+c":
 			return m, tea.Quit
 
-		case "enter":
+		case " ":
 			if i := slices.Index(m.selectedDate, m.actionTable.SelectedRow()[0]); i > -1 {
 				m.selectedDate = slices.Delete(m.selectedDate, i, i+1)
 			} else {
@@ -124,14 +143,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, cmd
 
-			// case "up", "k":
-			// 	if m.cursor > 0 {
-			// 		m.cursor--
-			// 	}
-			// case "down", "j":
-			// 	if m.cursor < len(m.choices)-1 {
-			// 		m.cursor++
-			// 	}
 			// case "enter", " ":
 			// 	_, ok := m.selected[m.cursor]
 			// 	if ok {
@@ -143,7 +154,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// 	m.answerField.SetValue("")
 		}
 	}
-
 	m.actionTable, cmd = m.actionTable.Update(msg)
 	return m, cmd
 }
@@ -191,20 +201,5 @@ func main() {
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}
-
-	// actual client
-	// client := NewHrmsClient(ClientOption{
-	// 	// Host:     "https://hrms.hktv.com.hk",
-	// 	Host:     "http://localhost:8080",
-	// 	UserName: "tychan",
-	// 	Pwd:      "196HRMS=",
-	// })
-	// client.Login()
-	// actions := client.GetAction()
-
-	modal.actionRows = append(modal.actionRows, []table.Row{{"2023-12-21", "Missing Attendance record 欠缺出入勤紀錄"}, {"2023-12-21", "Missing Attendance record 欠缺出入勤紀錄"}, {"2023-12-21", "Missing Attendance record 欠缺出入勤紀錄"}}...)
 	p.Run()
-
-	// client parsing
-	// client.ParseMainAction(haha)
 }
