@@ -13,6 +13,7 @@ import (
 )
 
 var enableDebugLog bool
+var logPath string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -22,6 +23,7 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
+		// Enable debug log
 		loggerOptions := log.Options{
 			ReportCaller: true,
 		}
@@ -29,7 +31,19 @@ var rootCmd = &cobra.Command{
 			loggerOptions.Level = log.DebugLevel
 		}
 
-		logger := log.NewWithOptions(os.Stderr, loggerOptions)
+		// Enable log to file if logPath is set
+		var logger *log.Logger
+		if logPath != "" {
+			logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
+			if err != nil {
+				log.Fatal("Error opening log file: %v", err)
+			}
+			defer logFile.Close()
+
+			logger = log.NewWithOptions(logFile, loggerOptions)
+		} else {
+			logger = log.NewWithOptions(os.Stdout, loggerOptions)
+		}
 
 		logger.Debug("Root Command started.")
 
@@ -68,13 +82,7 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.hrms-penguin.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
 	rootCmd.PersistentFlags().BoolVarP(&enableDebugLog, "debug", "d", false, "Enable debug logging")
+
+	rootCmd.PersistentFlags().StringVarP(&logPath, "log", "l", "", "Log file path")
 }

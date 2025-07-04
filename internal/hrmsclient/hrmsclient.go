@@ -222,7 +222,7 @@ func (c *HrmsClient) GetAttendance(year string, month string) ([]AttendanceData,
 		return nil, err
 	}
 
-	fmt.Printf("result: %v", attendanceRes)
+	c.logger.Debug("Get Attendance result", "data", attendanceRes)
 
 	return attendanceRes.Data, nil
 }
