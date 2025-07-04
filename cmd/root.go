@@ -4,6 +4,7 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"hrms-penguin/internal/hrmsclient"
 	"os"
 
@@ -65,10 +66,11 @@ var rootCmd = &cobra.Command{
 
 		hrmsClient.Login()
 
-		_, err = hrmsClient.GetAttendance("2025", "7")
+		todayAttendance, err := hrmsClient.GetTodayAttendance()
 		if err != nil {
 			log.Fatalf("GetAttendance errored: %v", err)
 		}
+		fmt.Printf("Today's Attendance: %v %v %v\n", todayAttendance.Date, todayAttendance.OriginalInTime, todayAttendance.OriginalOutTime)
 	},
 }
 

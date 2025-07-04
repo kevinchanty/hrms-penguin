@@ -2,11 +2,13 @@ package hrmsclient
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,7 +46,7 @@ func New(option ClientOption) *HrmsClient {
 		Timeout: 60 * time.Second,
 	}
 
-	logger := option.Logger.WithPrefix("HrmsClient")
+	logger := option.Logger.WithPrefix("[HrmsClient]")
 
 	return &HrmsClient{host: option.Host, userName: option.UserName, pwd: option.Pwd, httpClient: client, logger: logger}
 }
@@ -192,7 +194,7 @@ type AttendanceData struct {
 	OriginalOutTime string `json:"fldOriOut1"`
 }
 
-func (c *HrmsClient) GetAttendance(year string, month string) ([]AttendanceData, error) {
+func (c *HrmsClient) FetchAttendance(year string, month string) ([]AttendanceData, error) {
 	endpointUrl := fmt.Sprintf("%s/api/Attendance/getpages", c.host)
 
 	params := url.Values{}
@@ -203,7 +205,7 @@ func (c *HrmsClient) GetAttendance(year string, month string) ([]AttendanceData,
 
 	fullEndPointUrl := fmt.Sprintf("%s?%s", endpointUrl, params.Encode())
 
-	c.logger.Debug("Fetching Attendance...", "url", fullEndPointUrl)
+	c.logger.Debug("[FetchAttendance] fetching endpoint...", "url", fullEndPointUrl)
 	resp, err := c.httpClient.Get(fullEndPointUrl)
 	if err != nil {
 		return nil, err
@@ -222,7 +224,38 @@ func (c *HrmsClient) GetAttendance(year string, month string) ([]AttendanceData,
 		return nil, err
 	}
 
-	c.logger.Debug("Get Attendance result", "data", attendanceRes)
+	c.logger.Debug("FetchAttendance result", "data", attendanceRes)
 
 	return attendanceRes.Data, nil
+}
+
+func (c *HrmsClient) GetTodayAttendance() (AttendanceData, error) {
+	currentTime := time.Now()
+	day := currentTime.Day()
+	var accountingMonth time.Month
+
+	if day <= 15 {
+		accountingMonth = currentTime.Month()
+	} else {
+		accountingMonth = currentTime.Month() + 1
+	}
+
+	attendanceDataList, err := c.FetchAttendance(strconv.Itoa(currentTime.Year()), strconv.Itoa(int(accountingMonth)))
+	if err != nil {
+		return AttendanceData{}, err
+	}
+
+	for _, attendanceData := range attendanceDataList {
+		recordDate, err := time.Parse(time.DateOnly, attendanceData.Date)
+		if err != nil {
+			return AttendanceData{}, err
+		}
+
+		if recordDate.Day() == currentTime.Day() && recordDate.Month() == currentTime.Month() {
+			return attendanceData, nil
+		}
+	}
+
+	return AttendanceData{}, errors.New("[GetTodayAttendance] No record found.")
+
 }
