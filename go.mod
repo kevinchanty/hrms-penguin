@@ -1,6 +1,6 @@
 module hrms-penguin
 
-go 1.22.0
+go 1.24.4
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.1

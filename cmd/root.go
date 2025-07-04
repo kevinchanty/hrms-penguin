@@ -4,11 +4,10 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
 	"hrms-penguin/internal/hrmsclient"
-	"log"
 	"os"
 
+	"github.com/charmbracelet/log"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
@@ -16,38 +15,40 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "hrms-penguin",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "HRMS is hard to use",
+	Long:  `Trying to write a cli`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("rootCmd haha")
+		logger := log.NewWithOptions(os.Stderr, log.Options{
+			ReportCaller: true,
+			Level:        log.DebugLevel,
+		})
+
+		logger.Debug("Root Command started.")
+
 		err := godotenv.Load()
 		if err != nil {
 			log.Fatal("Error loading .env file")
 		}
 
 		hrmsHost := os.Getenv("HRMS_HOST")
-		hrmsUserName := os.Getenv("HRMS_USER_NAME")
+		hrmsUserName := os.Getenv("HRMS_USER")
 		hrmsPwd := os.Getenv("HRMS_PWD")
 
-		hrmsClient := hrmsclient.NewHrmsClient(hrmsclient.ClientOption{
+		hrmsClient := hrmsclient.New(hrmsclient.ClientOption{
 			Host:     hrmsHost,
 			UserName: hrmsUserName,
 			Pwd:      hrmsPwd,
+			Logger:   logger,
 		})
 
 		hrmsClient.Login()
-		action, err := hrmsClient.GetAction()
+
+		_, err = hrmsClient.GetAttendance("2025", "7")
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("GetAttendance errored: %v", err)
 		}
-		fmt.Println(action)
 	},
 }
 

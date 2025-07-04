@@ -1,12 +1,12 @@
 package hrmsclient
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -22,7 +22,7 @@ type HrmsClient struct {
 	host       string
 	userName   string
 	pwd        string
-	logger     log.Logger
+	logger     *log.Logger
 	httpClient *http.Client
 }
 
@@ -30,23 +30,23 @@ type ClientOption struct {
 	Host     string
 	UserName string
 	Pwd      string
+	Logger   *log.Logger
 }
 
-func NewHrmsClient(option ClientOption) *HrmsClient {
+func New(option ClientOption) *HrmsClient {
 	// http client
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
 		log.Fatal(err)
 	}
-	client := &http.Client{Jar: jar, Timeout: 60 * time.Second}
+	client := &http.Client{
+		Jar:     jar,
+		Timeout: 60 * time.Second,
+	}
 
-	// logger
-	logger := log.NewWithOptions(os.Stderr, log.Options{
-		Prefix: "HRMS Client:",
-		Level:  log.DebugLevel,
-	})
+	logger := option.Logger.WithPrefix("HrmsClient")
 
-	return &HrmsClient{host: option.Host, userName: option.UserName, pwd: option.Pwd, httpClient: client, logger: *logger}
+	return &HrmsClient{host: option.Host, userName: option.UserName, pwd: option.Pwd, httpClient: client, logger: logger}
 }
 
 func (c *HrmsClient) Login() {
@@ -58,11 +58,14 @@ func (c *HrmsClient) Login() {
 	formData.Set("fldEmpPwd", c.pwd)
 	formData.Set("code", "undefined")
 
+	c.logger.Debug("Posting Login...", "formData", formData)
 	res, err := c.httpClient.PostForm(fmt.Sprintf("%s/api/admin/login", c.host), formData)
 	if err != nil {
 		c.logger.Fatal(err)
 	}
 	defer res.Body.Close()
+
+	c.logger.Debug(res.Header)
 
 	if res.StatusCode == 200 && res.Header.Get("Set-Cookie") != "" {
 		c.logger.Debug("Login Success")
@@ -84,7 +87,7 @@ func (c *HrmsClient) GetAction() ([]table.Row, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.logger.Debugf("StatusCode: %d", res.StatusCode)
+	c.logger.Debugf("[HrmsClient] GetAction Post %s StatusCode: %d", fmt.Sprintf("%s/api/Home/GetAction", c.host), res.StatusCode)
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -176,4 +179,50 @@ func ParseMainActionForTable(actionStr string) []table.Row {
 
 	println(rows)
 	return rows
+}
+
+type AttendanceRes struct {
+	Msg  string           `json:"msg"`
+	Data []AttendanceData `json:"data"`
+}
+
+type AttendanceData struct {
+	Date            string `json:"fldDate"`
+	OriginalInTime  string `json:"fldOriIn1"`
+	OriginalOutTime string `json:"fldOriOut1"`
+}
+
+func (c *HrmsClient) GetAttendance(year string, month string) ([]AttendanceData, error) {
+	endpointUrl := fmt.Sprintf("%s/api/Attendance/getpages", c.host)
+
+	params := url.Values{}
+	params.Add("page", "1")
+	params.Add("limit", "31")
+	params.Add("types", "1")
+	params.Add("fldMonth", fmt.Sprintf("%s-%s", year, month))
+
+	fullEndPointUrl := fmt.Sprintf("%s?%s", endpointUrl, params.Encode())
+
+	c.logger.Debug("Fetching Attendance...", "url", fullEndPointUrl)
+	resp, err := c.httpClient.Get(fullEndPointUrl)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respStr, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	c.logger.Debugf("Fetch Attendance response body: %v", string(respStr))
+
+	var attendanceRes AttendanceRes
+	err = json.Unmarshal(respStr, &attendanceRes)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("result: %v", attendanceRes)
+
+	return attendanceRes.Data, nil
 }
