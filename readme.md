@@ -2,10 +2,11 @@
 
 ## TO DO:
 
-- Change hrmsCore into promise base
-- Check amend record
-- Check attendance record
-- Check day of date
+- [x] Check attendance record
+
+- [ ] Save Password safely in config
+
+- [ ] ~~Change hrmsCore into promise base~~
 
 ## Maybe DO:
 
