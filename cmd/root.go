@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var enableDebugLog bool
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "hrms-penguin",
@@ -20,10 +22,14 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		logger := log.NewWithOptions(os.Stderr, log.Options{
+		loggerOptions := log.Options{
 			ReportCaller: true,
-			Level:        log.DebugLevel,
-		})
+		}
+		if enableDebugLog {
+			loggerOptions.Level = log.DebugLevel
+		}
+
+		logger := log.NewWithOptions(os.Stderr, loggerOptions)
 
 		logger.Debug("Root Command started.")
 
@@ -70,5 +76,5 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().BoolVarP(&enableDebugLog, "debug", "d", false, "Enable debug logging")
 }
