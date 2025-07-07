@@ -6,7 +6,6 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/charmbracelet/log v0.3.1
 	github.com/gen2brain/beeep v0.0.0-20240112042604-c7bb2cd88fea
-	github.com/joho/godotenv v1.5.1
 	github.com/spf13/cobra v1.9.1
 	golang.org/x/net v0.20.0
 )

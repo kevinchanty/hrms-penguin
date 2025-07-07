@@ -4,17 +4,22 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"hrms-penguin/internal/hrmsclient"
 	"os"
 
+	_ "embed"
+
 	"github.com/charmbracelet/log"
-	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
 
 var enableDebugLog bool
 var logPath string
+
+//go:embed hrms-config.json
+var configStr []byte
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -48,20 +53,15 @@ var rootCmd = &cobra.Command{
 
 		logger.Debug("Root Command started.")
 
-		err := godotenv.Load()
+		var config hrmsclient.HrmsConfig
+		err := json.Unmarshal((configStr), &config)
 		if err != nil {
-			log.Fatal("Error loading .env file")
+			log.Fatal("Error parsing config")
 		}
 
-		hrmsHost := os.Getenv("HRMS_HOST")
-		hrmsUserName := os.Getenv("HRMS_USER")
-		hrmsPwd := os.Getenv("HRMS_PWD")
-
 		hrmsClient := hrmsclient.New(hrmsclient.ClientOption{
-			Host:     hrmsHost,
-			UserName: hrmsUserName,
-			Pwd:      hrmsPwd,
-			Logger:   logger,
+			HrmsConfig: config,
+			Logger:     logger,
 		})
 
 		hrmsClient.Login()

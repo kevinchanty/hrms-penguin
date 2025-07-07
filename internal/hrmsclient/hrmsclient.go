@@ -28,11 +28,15 @@ type HrmsClient struct {
 	httpClient *http.Client
 }
 
+type HrmsConfig struct {
+	Host     string `json:"hrmsHost"`
+	UserName string `json:"hrmsUser"`
+	Pwd      string `json:"hrmsPwd"`
+}
+
 type ClientOption struct {
-	Host     string
-	UserName string
-	Pwd      string
-	Logger   *log.Logger
+	HrmsConfig
+	Logger *log.Logger
 }
 
 func New(option ClientOption) *HrmsClient {
