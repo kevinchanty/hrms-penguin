@@ -48,7 +48,7 @@ var rootCmd = &cobra.Command{
 
 			logger = log.NewWithOptions(logFile, loggerOptions)
 		} else {
-			logger = log.NewWithOptions(os.Stdout, loggerOptions)
+			logger = log.NewWithOptions(os.Stderr, loggerOptions)
 		}
 
 		logger.Debug("Root Command started.")
