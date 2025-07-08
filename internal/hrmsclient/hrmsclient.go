@@ -55,7 +55,7 @@ func New(option ClientOption) *HrmsClient {
 	return &HrmsClient{host: option.Host, userName: option.UserName, pwd: option.Pwd, httpClient: client, logger: logger}
 }
 
-func (c *HrmsClient) Login() {
+func (c *HrmsClient) Login() error {
 	c.logger.Debug("Login start")
 
 	formData := url.Values{}
@@ -67,21 +67,20 @@ func (c *HrmsClient) Login() {
 	c.logger.Debug("Posting Login...", "formData", formData)
 	res, err := c.httpClient.PostForm(fmt.Sprintf("%s/api/admin/login", c.host), formData)
 	if err != nil {
-		c.logger.Fatal(err)
+		return err
 	}
 	defer res.Body.Close()
 
-	c.logger.Debug(res.Header)
+	c.logger.Debug("Login Response:", "headers", res.Header)
 
 	if res.StatusCode == 200 && res.Header.Get("Set-Cookie") != "" {
 		c.logger.Debug("Login Success")
 		c.logger.Debugf("%v", res.Header.Get("Set-Cookie"))
 		c.logger.Debugf("%s", c.httpClient.Jar.Cookies(&url.URL{Host: c.host}))
+	} else {
+		return errors.New("login failed")
 	}
-
-	if err != nil {
-		c.logger.Fatal(err)
-	}
+	return nil
 }
 
 func (c *HrmsClient) GetAction() ([]table.Row, error) {
