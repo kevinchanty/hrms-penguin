@@ -12,11 +12,15 @@ import (
 	_ "embed"
 
 	"github.com/charmbracelet/log"
+	"github.com/gen2brain/beeep"
 	"github.com/spf13/cobra"
 )
 
-var enableDebugLog bool
-var logPath string
+var (
+	enableDebugLog bool
+	logPath        string
+	enableNoti     bool
+)
 
 //go:embed hrms-config.json
 var configStr []byte
@@ -56,7 +60,7 @@ var rootCmd = &cobra.Command{
 		var config hrmsclient.HrmsConfig
 		err := json.Unmarshal((configStr), &config)
 		if err != nil {
-			log.Fatal("Error parsing config")
+			logger.Fatal("Error parsing config")
 		}
 
 		hrmsClient := hrmsclient.New(hrmsclient.ClientOption{
@@ -64,13 +68,21 @@ var rootCmd = &cobra.Command{
 			Logger:     logger,
 		})
 
-		hrmsClient.Login()
+		err = hrmsClient.Login()
+		if err != nil {
+			logger.Fatalf("Login Fails: %v", err)
+		}
 
 		todayAttendance, err := hrmsClient.GetTodayAttendance()
 		if err != nil {
-			log.Fatalf("GetAttendance errored: %v", err)
+			logger.Fatalf("GetAttendance errored: %v", err)
 		}
-		fmt.Printf("Today's Attendance: %v %v %v\n", todayAttendance.Date, todayAttendance.OriginalInTime, todayAttendance.OriginalOutTime)
+
+		if enableNoti {
+			beeep.Notify("HRMS Penguin", fmt.Sprintf("Today's Attendance: %v %v %v\n", todayAttendance.Date, todayAttendance.OriginalInTime, todayAttendance.OriginalOutTime), "")
+		} else {
+			fmt.Printf("Today's Attendance: %v %v %v\n", todayAttendance.Date, todayAttendance.OriginalInTime, todayAttendance.OriginalOutTime)
+		}
 	},
 }
 
@@ -85,6 +97,6 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&enableDebugLog, "debug", "d", false, "Enable debug logging")
-
 	rootCmd.PersistentFlags().StringVarP(&logPath, "log", "l", "", "Log file path")
+	rootCmd.PersistentFlags().BoolVarP(&enableNoti, "noti", "n", false, "Create push notification instead of print to stdOut")
 }
