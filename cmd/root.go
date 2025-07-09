@@ -5,21 +5,31 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hrms-penguin/internal/hrmsclient"
+	"io/fs"
 	"os"
+	"path"
 
 	_ "embed"
 
 	"github.com/charmbracelet/log"
 	"github.com/gen2brain/beeep"
 	"github.com/spf13/cobra"
+	"github.com/zalando/go-keyring"
+)
+
+const (
+	configName     string = ".hrms-penguin"
+	keyringService string = "hrms-penguin"
 )
 
 var (
-	enableDebugLog bool
-	logPath        string
-	enableNoti     bool
+	enableDebugLog    bool
+	logPath           string
+	enableNoti        bool
+	ErrConfigNotFound error = errors.New("secret not found in keyring")
 )
 
 //go:embed hrms-config.json
@@ -57,11 +67,26 @@ var rootCmd = &cobra.Command{
 
 		logger.Debug("Root Command started.")
 
-		var config hrmsclient.HrmsConfig
-		err := json.Unmarshal((configStr), &config)
+		config, err := getSavedConfig()
 		if err != nil {
-			logger.Fatal("Error parsing config")
+			if errors.Is(err, ErrConfigNotFound) {
+				logger.Fatalf("config not found!", err)
+
+			} else {
+				logger.Fatalf("get saved config fails: %v\n", err)
+			}
 		}
+
+		// var config hrmsclient.HrmsConfig
+		// err := json.Unmarshal((configStr), &config)
+		// if err != nil {
+		// 	logger.Fatal("Error parsing config")
+		// }
+
+		// config, err := getSavedConfig()
+		// if err != nil {
+		// 	logger.Fatalf("Get config fails: %v\n", err)
+		// }
 
 		hrmsClient := hrmsclient.New(hrmsclient.ClientOption{
 			HrmsConfig: config,
@@ -75,7 +100,7 @@ var rootCmd = &cobra.Command{
 
 		todayAttendance, err := hrmsClient.GetTodayAttendance()
 		if err != nil {
-			logger.Fatalf("GetAttendance errored: %v", err)
+			logger.Fatalf("GetAttendance fails: %v", err)
 		}
 
 		if enableNoti {
@@ -99,4 +124,51 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&enableDebugLog, "debug", "d", false, "Enable debug logging")
 	rootCmd.PersistentFlags().StringVarP(&logPath, "log", "l", "", "Log file path")
 	rootCmd.PersistentFlags().BoolVarP(&enableNoti, "noti", "n", false, "Create push notification instead of print to stdOut")
+}
+
+func getSavedConfig() (hrmsclient.HrmsConfig, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, err
+	}
+
+	configPath := path.Join(homeDir, configName)
+
+	_, err = os.Stat(configPath)
+	if errors.Is(err, fs.ErrNotExist) {
+		return hrmsclient.HrmsConfig{}, errors.New("saved config does not exist")
+	}
+
+	configBytes, err := os.ReadFile(configPath)
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, err
+	}
+
+	var hrmsConfig hrmsclient.HrmsConfig
+	err = json.Unmarshal(configBytes, &hrmsConfig)
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, err
+	}
+
+	password, err := getKeyringPassword(hrmsConfig.UserName)
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, err
+	}
+
+	hrmsConfig.Pwd = password
+
+	return hrmsConfig, nil
+}
+
+func getKeyringPassword(user string) (string, error) {
+	val, err := keyring.Get(keyringService, user)
+	if err != nil {
+		return "", err
+	}
+	return val, nil
+}
+
+func promptConfig() (hrmsclient.HrmsConfig, error) {
+	log.Fatal("not done")
+	return hrmsclient.HrmsConfig{}, nil
 }
