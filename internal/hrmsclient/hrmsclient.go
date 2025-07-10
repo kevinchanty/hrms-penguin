@@ -31,7 +31,7 @@ type HrmsClient struct {
 type HrmsConfig struct {
 	Host     string `json:"hrmsHost"`
 	UserName string `json:"hrmsUser"`
-	Pwd      string `json:"hrmsPwd"`
+	Pwd      string `json:"-"`
 }
 
 type ClientOption struct {
