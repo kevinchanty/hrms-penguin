@@ -4,22 +4,37 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hrms-penguin/internal/hrmsclient"
+	"io/fs"
 	"os"
+	"path"
+	"strings"
 
 	_ "embed"
 
 	"github.com/charmbracelet/log"
 	"github.com/gen2brain/beeep"
 	"github.com/spf13/cobra"
+	"github.com/zalando/go-keyring"
+	"golang.org/x/term"
+)
+
+const (
+	configName     string = ".hrms-penguin"
+	keyringService string = "hrms-penguin"
 )
 
 var (
-	enableDebugLog bool
-	logPath        string
-	enableNoti     bool
+	enableDebugLog    bool
+	logPath           string
+	enableNoti        bool
+	forcePromptConfig bool
+
+	ErrConfigNotFound error = errors.New("secret not found in keyring")
 )
 
 //go:embed hrms-config.json
@@ -58,9 +73,20 @@ var rootCmd = &cobra.Command{
 		logger.Debug("Root Command started.")
 
 		var config hrmsclient.HrmsConfig
-		err := json.Unmarshal((configStr), &config)
-		if err != nil {
-			logger.Fatal("Error parsing config")
+		var err error
+		if forcePromptConfig {
+			config, err = promptConfig()
+		} else {
+			config, err = getSavedConfig()
+			if err != nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					fmt.Printf("No config found.")
+				}
+				config, err = promptConfig()
+				if err != nil {
+					logger.Fatalf("Failed to prompt for configuration: %v", err)
+				}
+			}
 		}
 
 		hrmsClient := hrmsclient.New(hrmsclient.ClientOption{
@@ -75,7 +101,7 @@ var rootCmd = &cobra.Command{
 
 		todayAttendance, err := hrmsClient.GetTodayAttendance()
 		if err != nil {
-			logger.Fatalf("GetAttendance errored: %v", err)
+			logger.Fatalf("GetAttendance fails: %v", err)
 		}
 
 		if enableNoti {
@@ -99,4 +125,125 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&enableDebugLog, "debug", "d", false, "Enable debug logging")
 	rootCmd.PersistentFlags().StringVarP(&logPath, "log", "l", "", "Log file path")
 	rootCmd.PersistentFlags().BoolVarP(&enableNoti, "noti", "n", false, "Create push notification instead of print to stdOut")
+	rootCmd.PersistentFlags().BoolVarP(&forcePromptConfig, "prompt", "p", false, "Ignore saved config and prompt for new one")
+}
+
+func getSavedConfig() (hrmsclient.HrmsConfig, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, err
+	}
+
+	configPath := path.Join(homeDir, configName)
+
+	_, err = os.Stat(configPath)
+	if errors.Is(err, fs.ErrNotExist) {
+		return hrmsclient.HrmsConfig{}, errors.New("saved config does not exist")
+	}
+
+	configBytes, err := os.ReadFile(configPath)
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, err
+	}
+
+	var hrmsConfig hrmsclient.HrmsConfig
+	err = json.Unmarshal(configBytes, &hrmsConfig)
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, err
+	}
+
+	password, err := getKeyringPassword(hrmsConfig.UserName)
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, err
+	}
+
+	hrmsConfig.Pwd = password
+
+	return hrmsConfig, nil
+}
+
+func getKeyringPassword(user string) (string, error) {
+	val, err := keyring.Get(keyringService, user)
+	if err != nil {
+		return "", err
+	}
+	return val, nil
+}
+
+func promptConfig() (hrmsclient.HrmsConfig, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, err
+	}
+
+	configPath := path.Join(homeDir, configName)
+
+	// Prompt user for HRMS host
+	fmt.Print("Enter HRMS host (e.g., https://hrms.example.com): ")
+	reader := bufio.NewReader(os.Stdin)
+	host, err := reader.ReadString('\n')
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, fmt.Errorf("failed to read host: %w", err)
+	}
+	host = strings.TrimSpace(host)
+	if host == "" {
+		return hrmsclient.HrmsConfig{}, errors.New("host cannot be empty")
+	}
+
+	// Prompt user for HRMS username
+	fmt.Print("Enter HRMS username: ")
+	var username string
+	username, err = reader.ReadString('\n')
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, fmt.Errorf("failed to read username: %w", err)
+	}
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return hrmsclient.HrmsConfig{}, errors.New("username cannot be empty")
+	}
+
+	// Prompt user for password (without echoing)
+	fmt.Print("Enter HRMS password: ")
+	passwordBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, fmt.Errorf("failed to read password: %w", err)
+	}
+	fmt.Println() // Add newline after password input
+	password := strings.TrimSpace(string(passwordBytes))
+	if password == "" {
+		return hrmsclient.HrmsConfig{}, errors.New("password cannot be empty")
+	}
+
+	// Create config object
+	config := hrmsclient.HrmsConfig{
+		Host:     host,
+		UserName: username,
+		Pwd:      password, // This will be replaced with keyring password
+	}
+
+	// Save to keyring
+	err = keyring.Set(keyringService, username, password)
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, fmt.Errorf("failed to save password to keyring: %w", err)
+	}
+
+	// Create config for file (without password)
+	configForFile := hrmsclient.HrmsConfig{
+		Host:     host,
+		UserName: username,
+		Pwd:      "", // Don't save password in file
+	}
+
+	configData, err := json.MarshalIndent(configForFile, "", "  ")
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	err = os.WriteFile(configPath, configData, 0600) // Read/write for owner only
+	if err != nil {
+		return hrmsclient.HrmsConfig{}, fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	fmt.Printf("Configuration saved to %s\n", configPath)
+	return config, nil
 }

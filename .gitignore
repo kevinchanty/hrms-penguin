@@ -4,3 +4,5 @@ node_modules
 hrms-config.json
 dist/
 *.log
+
+*.exe

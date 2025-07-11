@@ -11,10 +11,12 @@ require (
 )
 
 require (
+	al.essio.dev/pkg/shellescape v1.5.1 // indirect
 	git.sr.ht/~jackmordaunt/go-toast v1.1.2 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/charmbracelet/bubbletea v0.25.0 // indirect
 	github.com/charmbracelet/lipgloss v0.9.1 // indirect
+	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/esiqveland/notify v0.13.3 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4 // indirect
@@ -27,6 +29,7 @@ require (
 	github.com/sergeymakinen/go-ico v1.0.0-beta.0 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
+	github.com/zalando/go-keyring v0.2.6 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 )
 
