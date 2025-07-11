@@ -34,12 +34,12 @@ type HrmsConfig struct {
 	Pwd      string `json:"-"`
 }
 
-type ClientOption struct {
+type NewClientOption struct {
 	HrmsConfig
 	Logger *log.Logger
 }
 
-func New(option ClientOption) *HrmsClient {
+func New(option NewClientOption) *HrmsClient {
 	// http client
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {

@@ -30,7 +30,7 @@ func (c *config) init(args []string) error {
 }
 
 func main() {
-	fmt.Println("haha")
+	fmt.Println("Start ticking")
 
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -44,7 +44,6 @@ func main() {
 	if err := run(ctx, c); err != nil {
 		os.Exit(1)
 	}
-	// beeep.Notify("haha", "testing", "")
 }
 
 func run(ctx context.Context, c *config) error {

@@ -89,7 +89,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		hrmsClient := hrmsclient.New(hrmsclient.ClientOption{
+		hrmsClient := hrmsclient.New(hrmsclient.NewClientOption{
 			HrmsConfig: config,
 			Logger:     logger,
 		})
