@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -18,6 +19,7 @@ type Model struct {
 	Date         []time.Time
 	AttnRecord   []string
 	table        table.Model
+	textInput    textinput.Model
 	windowWidth  int
 	windowHeight int
 }
@@ -47,10 +49,17 @@ func InitialModel() Model {
 		BorderBottom(true)
 	t.SetStyles(s)
 
+	ti := textinput.New()
+	ti.Placeholder = "Pikachu"
+	ti.Focus()
+	ti.CharLimit = 156
+	ti.Width = 20
+
 	return Model{
 		Date:       make([]time.Time, 0),
 		AttnRecord: make([]string, 0),
 		table:      t,
+		textInput:  ti,
 	}
 }
 
@@ -90,7 +99,7 @@ func (m Model) View() string {
 	s := baseStyle.Render(m.table.View())
 
 	// Title
-	s = lipgloss.JoinVertical(lipgloss.Center, "Attendance Record Management", s)
+	s = lipgloss.JoinVertical(lipgloss.Center, "Attendance Record Management", s, m.textInput.View())
 
 	// center
 	return lipgloss.Place(m.windowWidth, m.windowHeight, lipgloss.Center, lipgloss.Center, s)
