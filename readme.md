@@ -3,16 +3,10 @@
 ## TO DO:
 
 - [x] Check attendance record
-
-- [ ] Save Password safely in config
-
-- [ ] ~~Change hrmsCore into promise base~~
+- [x] Save Password safely in config
+- [ ] Vacation Application
+- [ ] TUI with Charm
 
 ## Maybe DO:
 
-- Publish to NPM
 - Version Update Reminder
-
-- Command line mode
-- WEB APP
-- Electron APP
