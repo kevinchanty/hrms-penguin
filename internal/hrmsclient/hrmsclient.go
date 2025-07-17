@@ -192,9 +192,12 @@ type AttendanceRes struct {
 }
 
 type AttendanceData struct {
-	Date            string `json:"fldDate"`
-	OriginalInTime  string `json:"fldOriIn1"`
-	OriginalOutTime string `json:"fldOriOut1"`
+	Date               string `json:"fldDate"`
+	OriginalInTimeStr  string `json:"fldOriIn1"`
+	OriginalOutTimeStr string `json:"fldOriOut1"`
+	OriginalInTime     time.Time
+	OriginalOutTime    time.Time
+	IsLate             bool
 }
 
 func (c *HrmsClient) FetchAttendance(year string, month string) ([]AttendanceData, error) {
@@ -229,6 +232,41 @@ func (c *HrmsClient) FetchAttendance(year string, month string) ([]AttendanceDat
 
 	c.logger.Debug("FetchAttendance result", "data", attendanceRes)
 
+	// Parse in/ out time, add IsLate
+	for i, attendanceData := range attendanceRes.Data {
+		var (
+			inTime  time.Time
+			outTime time.Time
+		)
+
+		if attendanceData.OriginalInTimeStr != "" {
+			inTime, err = time.Parse("2006-01-02 15:04", fmt.Sprintf("%v %v", attendanceData.Date, attendanceData.OriginalInTimeStr))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if attendanceData.OriginalOutTimeStr != "" {
+			outTime, err = time.Parse("2006-01-02 15:04", fmt.Sprintf("%v %v", attendanceData.Date, attendanceData.OriginalOutTimeStr))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		attendanceRes.Data[i].OriginalInTime = inTime
+		attendanceRes.Data[i].OriginalOutTime = outTime
+
+		if !inTime.IsZero() && !outTime.IsZero() {
+			lateTime, err := time.Parse("2006-01-02 15:04", fmt.Sprintf("%v %v", attendanceData.
+				Date, "09:30"))
+			if err != nil {
+				return nil, err
+			}
+			if inTime.After(lateTime) {
+				attendanceRes.Data[i].IsLate = true
+			}
+		}
+	}
 	return attendanceRes.Data, nil
 }
 

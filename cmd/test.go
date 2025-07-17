@@ -1,12 +1,9 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
-	"fmt"
+	"hrms-penguin/internal/cli"
 
+	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
 
@@ -21,20 +18,26 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("test called")
+		log.Debug("Root Command started.")
+
+		logger, err := cli.SetupLogger(enableDebugLog, logPath)
+		if err != nil {
+			log.Fatal("Setup logger fails: %v", err)
+		}
+
+		hrmsClient, err := cli.SetupHrmsClient(logger, forcePromptConfig)
+		if err != nil {
+			logger.Fatal("Setup HRMS client fails: %v", err)
+		}
+
+		err = hrmsClient.Login()
+		if err != nil {
+			logger.Fatalf("Login Fails: %v", err)
+		}
+
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(testCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// testCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// testCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
