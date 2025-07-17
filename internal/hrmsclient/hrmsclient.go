@@ -76,7 +76,7 @@ func (c *HrmsClient) Login() error {
 	if res.StatusCode == 200 && res.Header.Get("Set-Cookie") != "" {
 		c.logger.Debug("Login Success")
 		c.logger.Debugf("%v", res.Header.Get("Set-Cookie"))
-		c.logger.Debugf("%s", c.httpClient.Jar.Cookies(&url.URL{Host: c.host}))
+		c.logger.Debugf("%s", c.httpClient.Jar.Cookies(&url.URL{Host: c.host})) // todo: not working
 	} else {
 		return errors.New("login failed")
 	}
@@ -222,7 +222,7 @@ func (c *HrmsClient) FetchAttendance(year string, month string) ([]AttendanceDat
 	if err != nil {
 		return nil, err
 	}
-	c.logger.Debugf("Fetch Attendance response body: %v", string(respStr))
+	c.logger.Debug("[FetchAttendance]", "response body", string(respStr))
 
 	var attendanceRes AttendanceRes
 	err = json.Unmarshal(respStr, &attendanceRes)
@@ -230,7 +230,7 @@ func (c *HrmsClient) FetchAttendance(year string, month string) ([]AttendanceDat
 		return nil, err
 	}
 
-	c.logger.Debug("FetchAttendance result", "data", attendanceRes)
+	c.logger.Debug("[FetchAttendance] result", "data", attendanceRes)
 
 	// Parse in/ out time, add IsLate
 	for i, attendanceData := range attendanceRes.Data {
@@ -299,4 +299,45 @@ func (c *HrmsClient) GetTodayAttendance() (AttendanceData, error) {
 
 	return AttendanceData{}, errors.New("[GetTodayAttendance] No record found.")
 
+}
+
+func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
+	currentTime := time.Now()
+	day := currentTime.Day()
+	var accountingMonths []time.Month
+
+	accountingMonths = append(accountingMonths, currentTime.Month())
+
+	if day > 15 {
+		accountingMonths = append(accountingMonths, currentTime.Month()+1)
+	}
+
+	c.logger.Debug("[GetRecentAttendance]", "accountingMonths", accountingMonths)
+
+	type fetchResult struct {
+		record []AttendanceData
+		err    error
+	}
+
+	resultCh := make(chan fetchResult)
+	attendanceDataList := make([]AttendanceData, 0)
+
+	for _, month := range accountingMonths {
+		go func() {
+			record, err := c.FetchAttendance(strconv.Itoa(currentTime.Year()), strconv.Itoa(int(month)))
+			resultCh <- fetchResult{record, err}
+		}()
+	}
+
+	for range accountingMonths {
+		result := <-resultCh
+		if result.err != nil {
+			return nil, result.err
+		}
+		attendanceDataList = append(attendanceDataList, result.record...)
+	}
+
+	// todo filter
+
+	return attendanceDataList, nil
 }
