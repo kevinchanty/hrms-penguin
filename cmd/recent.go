@@ -14,13 +14,8 @@ import (
 // recentCmd represents the recent command
 var recentCmd = &cobra.Command{
 	Use:   "recent",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Get Recent Attendance Records",
+	Long:  `Get Recent Attendance Records, excluding Sat & Sun.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Debug("Root Command started.")
 
@@ -41,25 +36,21 @@ to quickly create a Cobra application.`,
 
 		attendanceDataList, err := hrmsClient.GetRecentAttendance()
 		if err != nil {
-			logger.Fatalf("GetRedentAttendance fails: %v", err)
+			logger.Fatalf("GetRecentAttendance fails: %v", err)
 		}
 
 		for _, data := range attendanceDataList {
-			fmt.Printf("%+v\n", data)
+			fmt.Printf("%v %v %v", data.Date, data.OriginalInTimeStr, data.OriginalOutTimeStr)
+
+			if data.IsLate {
+				fmt.Print(" LATE\n")
+			} else {
+				fmt.Print("\n")
+			}
 		}
 	},
 }
 
 func init() {
-	testCmd.AddCommand(recentCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// recentCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// recentCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.AddCommand(recentCmd)
 }

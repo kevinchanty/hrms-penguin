@@ -256,7 +256,7 @@ func (c *HrmsClient) FetchAttendance(year string, month string) ([]AttendanceDat
 		attendanceRes.Data[i].OriginalInTime = inTime
 		attendanceRes.Data[i].OriginalOutTime = outTime
 
-		if !inTime.IsZero() && !outTime.IsZero() {
+		if !inTime.IsZero() {
 			lateTime, err := time.Parse("2006-01-02 15:04", fmt.Sprintf("%v %v", attendanceData.
 				Date, "09:30"))
 			if err != nil {
@@ -338,6 +338,22 @@ func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
 	}
 
 	// todo filter
+	filterList := make([]AttendanceData, 0, len(attendanceDataList))
+	for _, data := range attendanceDataList {
+		recordDate, err := time.Parse(time.DateOnly, data.Date)
+		if err != nil {
+			return nil, err
+		}
+		if recordDate.After(time.Now()) {
+			continue
+		}
+		if recordDate.Weekday() == 0 || recordDate.Weekday() == 6 {
+			continue
+		}
 
+		filterList = append(filterList, data)
+	}
+
+	attendanceDataList = filterList
 	return attendanceDataList, nil
 }
