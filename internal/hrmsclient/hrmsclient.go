@@ -357,3 +357,46 @@ func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
 	attendanceDataList = filterList
 	return attendanceDataList, nil
 }
+
+type CreateLeaveApplicationRes struct {
+	Status string
+}
+
+func (c *HrmsClient) CreateLeaveApplication(startTime time.Time, endTime time.Time) error {
+	endpointUrl := fmt.Sprintf("%s/api/Leave/CreateLeave", c.host)
+
+	formData := url.Values{}
+	formData.Set("fldAttInOut", "VL")
+	formData.Set("fldFromDate", startTime.Format(time.DateOnly))
+	formData.Set("fldDateFromHour", startTime.Format("15"))
+	formData.Set("fldDateFromMin", startTime.Format("04"))
+	formData.Set("fldToDate", endTime.Format(time.DateOnly))
+	formData.Set("fldDateToHour", endTime.Format("15"))
+	formData.Set("fldDateToMin", endTime.Format("04"))
+	formData.Set("ReferenceDate", "")
+
+	c.logger.Debug("[CreateLeaveApplication] Posting CreateLeave...", "formData", formData)
+
+	res, err := c.httpClient.PostForm(endpointUrl, formData)
+	if err != nil || res.StatusCode != 200 {
+		return err
+	}
+
+	resStr, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	var createResponse CreateLeaveApplicationRes
+	err = json.Unmarshal(resStr, &createResponse)
+	if err != nil {
+		return err
+	}
+
+	if createResponse.Status == "fail" {
+		return fmt.Errorf("create leave fails, res: %+v", createResponse)
+	}
+	defer res.Body.Close()
+
+	return nil
+}
