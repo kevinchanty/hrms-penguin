@@ -76,7 +76,7 @@ func (c *HrmsClient) Login() error {
 	if res.StatusCode == 200 && res.Header.Get("Set-Cookie") != "" {
 		c.logger.Debug("Login Success")
 		c.logger.Debugf("%v", res.Header.Get("Set-Cookie"))
-		c.logger.Debugf("%s", c.httpClient.Jar.Cookies(&url.URL{Host: c.host}))
+		c.logger.Debugf("%s", c.httpClient.Jar.Cookies(&url.URL{Host: c.host})) // todo: not working
 	} else {
 		return errors.New("login failed")
 	}
@@ -192,9 +192,12 @@ type AttendanceRes struct {
 }
 
 type AttendanceData struct {
-	Date            string `json:"fldDate"`
-	OriginalInTime  string `json:"fldOriIn1"`
-	OriginalOutTime string `json:"fldOriOut1"`
+	Date               string `json:"fldDate"`
+	OriginalInTimeStr  string `json:"fldOriIn1"`
+	OriginalOutTimeStr string `json:"fldOriOut1"`
+	OriginalInTime     time.Time
+	OriginalOutTime    time.Time
+	IsLate             bool
 }
 
 func (c *HrmsClient) FetchAttendance(year string, month string) ([]AttendanceData, error) {
@@ -219,7 +222,7 @@ func (c *HrmsClient) FetchAttendance(year string, month string) ([]AttendanceDat
 	if err != nil {
 		return nil, err
 	}
-	c.logger.Debugf("Fetch Attendance response body: %v", string(respStr))
+	c.logger.Debug("[FetchAttendance]", "response body", string(respStr))
 
 	var attendanceRes AttendanceRes
 	err = json.Unmarshal(respStr, &attendanceRes)
@@ -227,8 +230,43 @@ func (c *HrmsClient) FetchAttendance(year string, month string) ([]AttendanceDat
 		return nil, err
 	}
 
-	c.logger.Debug("FetchAttendance result", "data", attendanceRes)
+	c.logger.Debug("[FetchAttendance] result", "data", attendanceRes)
 
+	// Parse in/ out time, add IsLate
+	for i, attendanceData := range attendanceRes.Data {
+		var (
+			inTime  time.Time
+			outTime time.Time
+		)
+
+		if attendanceData.OriginalInTimeStr != "" {
+			inTime, err = time.Parse("2006-01-02 15:04", fmt.Sprintf("%v %v", attendanceData.Date, attendanceData.OriginalInTimeStr))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if attendanceData.OriginalOutTimeStr != "" {
+			outTime, err = time.Parse("2006-01-02 15:04", fmt.Sprintf("%v %v", attendanceData.Date, attendanceData.OriginalOutTimeStr))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		attendanceRes.Data[i].OriginalInTime = inTime
+		attendanceRes.Data[i].OriginalOutTime = outTime
+
+		if !inTime.IsZero() {
+			lateTime, err := time.Parse("2006-01-02 15:04", fmt.Sprintf("%v %v", attendanceData.
+				Date, "09:30"))
+			if err != nil {
+				return nil, err
+			}
+			if inTime.After(lateTime) {
+				attendanceRes.Data[i].IsLate = true
+			}
+		}
+	}
 	return attendanceRes.Data, nil
 }
 
@@ -261,4 +299,61 @@ func (c *HrmsClient) GetTodayAttendance() (AttendanceData, error) {
 
 	return AttendanceData{}, errors.New("[GetTodayAttendance] No record found.")
 
+}
+
+func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
+	currentTime := time.Now()
+	day := currentTime.Day()
+	var accountingMonths []time.Month
+
+	accountingMonths = append(accountingMonths, currentTime.Month())
+
+	if day > 15 {
+		accountingMonths = append(accountingMonths, currentTime.Month()+1)
+	}
+
+	c.logger.Debug("[GetRecentAttendance]", "accountingMonths", accountingMonths)
+
+	type fetchResult struct {
+		record []AttendanceData
+		err    error
+	}
+
+	resultCh := make(chan fetchResult)
+	attendanceDataList := make([]AttendanceData, 0)
+
+	for _, month := range accountingMonths {
+		go func() {
+			record, err := c.FetchAttendance(strconv.Itoa(currentTime.Year()), strconv.Itoa(int(month)))
+			resultCh <- fetchResult{record, err}
+		}()
+	}
+
+	for range accountingMonths {
+		result := <-resultCh
+		if result.err != nil {
+			return nil, result.err
+		}
+		attendanceDataList = append(attendanceDataList, result.record...)
+	}
+
+	// todo filter
+	filterList := make([]AttendanceData, 0, len(attendanceDataList))
+	for _, data := range attendanceDataList {
+		recordDate, err := time.Parse(time.DateOnly, data.Date)
+		if err != nil {
+			return nil, err
+		}
+		if recordDate.After(time.Now()) {
+			continue
+		}
+		if recordDate.Weekday() == 0 || recordDate.Weekday() == 6 {
+			continue
+		}
+
+		filterList = append(filterList, data)
+	}
+
+	attendanceDataList = filterList
+	return attendanceDataList, nil
 }
