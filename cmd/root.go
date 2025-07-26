@@ -61,9 +61,9 @@ var rootCmd = &cobra.Command{
 		}
 
 		if enableNoti {
-			beeep.Notify("HRMS Penguin", fmt.Sprintf("Today's Attendance: %v %v %v\n", todayAttendance.Date, todayAttendance.OriginalInTimeStr, todayAttendance.OriginalOutTimeStr), "")
+			beeep.Notify("HRMS Penguin", fmt.Sprintf("Today's Attendance: %v %v %v\n", todayAttendance.DateStr, todayAttendance.OriginalInTimeStr, todayAttendance.OriginalOutTimeStr), "")
 		} else {
-			fmt.Printf("Today's Attendance: %v %v %v\n", todayAttendance.Date, todayAttendance.OriginalInTimeStr, todayAttendance.OriginalOutTimeStr)
+			fmt.Printf("Today's Attendance: %v %v %v\n", todayAttendance.DateStr, todayAttendance.OriginalInTimeStr, todayAttendance.OriginalOutTimeStr)
 		}
 	},
 }

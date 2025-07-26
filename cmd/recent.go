@@ -40,7 +40,7 @@ var recentCmd = &cobra.Command{
 		}
 
 		for _, data := range attendanceDataList {
-			fmt.Printf("%v %v %v %v", data.Date, data.OriginalInTime.Weekday().String()[:3], data.OriginalInTimeStr, data.OriginalOutTimeStr)
+			fmt.Printf("%v %v %v %v", data.DateStr, data.OriginalInTime.Weekday().String()[:3], data.OriginalInTimeStr, data.OriginalOutTimeStr)
 
 			if data.IsLate {
 				fmt.Print(" LATE\n")

@@ -192,9 +192,10 @@ type AttendanceRes struct {
 }
 
 type AttendanceData struct {
-	Date               string `json:"fldDate"`
+	DateStr            string `json:"fldDate"`
 	OriginalInTimeStr  string `json:"fldOriIn1"`
 	OriginalOutTimeStr string `json:"fldOriOut1"`
+	Date               time.Time
 	OriginalInTime     time.Time
 	OriginalOutTime    time.Time
 	IsLate             bool
@@ -232,22 +233,28 @@ func (c *HrmsClient) FetchAttendance(year string, month string) ([]AttendanceDat
 
 	c.logger.Debug("[FetchAttendance] result", "data", attendanceRes)
 
-	// Parse in/ out time, add IsLate
+	// Parse date, in/out time, add IsLate
 	for i, attendanceData := range attendanceRes.Data {
 		var (
 			inTime  time.Time
 			outTime time.Time
+			date    time.Time
 		)
 
+		date, err = time.Parse("2006-01-02", attendanceData.DateStr)
+		if err != nil {
+			return nil, err
+		}
+
 		if attendanceData.OriginalInTimeStr != "" {
-			inTime, err = time.Parse("2006-01-02 15:04", fmt.Sprintf("%v %v", attendanceData.Date, attendanceData.OriginalInTimeStr))
+			inTime, err = time.Parse("2006-01-02 15:04", fmt.Sprintf("%v %v", attendanceData.DateStr, attendanceData.OriginalInTimeStr))
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		if attendanceData.OriginalOutTimeStr != "" {
-			outTime, err = time.Parse("2006-01-02 15:04", fmt.Sprintf("%v %v", attendanceData.Date, attendanceData.OriginalOutTimeStr))
+			outTime, err = time.Parse("2006-01-02 15:04", fmt.Sprintf("%v %v", attendanceData.DateStr, attendanceData.OriginalOutTimeStr))
 			if err != nil {
 				return nil, err
 			}
@@ -255,10 +262,11 @@ func (c *HrmsClient) FetchAttendance(year string, month string) ([]AttendanceDat
 
 		attendanceRes.Data[i].OriginalInTime = inTime
 		attendanceRes.Data[i].OriginalOutTime = outTime
+		attendanceRes.Data[i].Date = date
 
 		if !inTime.IsZero() {
 			lateTime, err := time.Parse("2006-01-02 15:04", fmt.Sprintf("%v %v", attendanceData.
-				Date, "09:30"))
+				DateStr, "09:30"))
 			if err != nil {
 				return nil, err
 			}
@@ -287,7 +295,7 @@ func (c *HrmsClient) GetTodayAttendance() (AttendanceData, error) {
 	}
 
 	for _, attendanceData := range attendanceDataList {
-		recordDate, err := time.Parse(time.DateOnly, attendanceData.Date)
+		recordDate, err := time.Parse(time.DateOnly, attendanceData.DateStr)
 		if err != nil {
 			return AttendanceData{}, err
 		}
@@ -337,10 +345,11 @@ func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
 		attendanceDataList = append(attendanceDataList, result.record...)
 	}
 
-	// todo filter
+	// todo sort -> should parse first~
+
 	filterList := make([]AttendanceData, 0, len(attendanceDataList))
 	for _, data := range attendanceDataList {
-		recordDate, err := time.Parse(time.DateOnly, data.Date)
+		recordDate, err := time.Parse(time.DateOnly, data.DateStr)
 		if err != nil {
 			return nil, err
 		}
