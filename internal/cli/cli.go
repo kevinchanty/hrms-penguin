@@ -21,6 +21,8 @@ const (
 	keyringService string = "hrms-penguin"
 )
 
+var noConfigError = errors.New("saved config does not exist")
+
 func getSavedConfig() (hrmsclient.HrmsConfig, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -31,7 +33,7 @@ func getSavedConfig() (hrmsclient.HrmsConfig, error) {
 
 	_, err = os.Stat(configPath)
 	if errors.Is(err, fs.ErrNotExist) {
-		return hrmsclient.HrmsConfig{}, errors.New("saved config does not exist")
+		return hrmsclient.HrmsConfig{}, noConfigError
 	}
 
 	configBytes, err := os.ReadFile(configPath)
@@ -175,7 +177,7 @@ func SetupHrmsClient(logger *log.Logger, forcePromptConfig bool) (*hrmsclient.Hr
 	} else {
 		config, err = getSavedConfig()
 		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
+			if errors.Is(err, noConfigError) {
 				fmt.Printf("No config found.")
 			}
 			config, err = promptConfig()
