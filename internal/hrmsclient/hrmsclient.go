@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -345,8 +346,6 @@ func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
 		attendanceDataList = append(attendanceDataList, result.record...)
 	}
 
-	// todo sort -> should parse first~
-
 	filterList := make([]AttendanceData, 0, len(attendanceDataList))
 	for _, data := range attendanceDataList {
 		recordDate, err := time.Parse(time.DateOnly, data.DateStr)
@@ -362,6 +361,13 @@ func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
 
 		filterList = append(filterList, data)
 	}
+	slices.SortFunc(filterList, func(a AttendanceData, b AttendanceData) int {
+		if a.Date.Before(b.Date) {
+			return -1
+		} else {
+			return 1
+		}
+	})
 
 	attendanceDataList = filterList
 	return attendanceDataList, nil
