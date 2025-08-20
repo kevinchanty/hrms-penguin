@@ -16,8 +16,9 @@ import (
 var leaveCmd = &cobra.Command{
 	Use:   "leave",
 	Short: "Create Leave Application",
-	Long: `Create Leave Application with starttime and endTime.
-	Time Format: "2025-07-18 09:2"`,
+	Long: `Create Leave Application with startTime and endTime.
+	Time Format: "2025-07-18 09:20"
+	Example: hrms-penguin leave '2025-07-18 09:20' '2025-07-18 09:45'`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		// Optionally run one of the validators provided by cobra
 		if err := cobra.ExactArgs(2)(cmd, args); err != nil {
