@@ -6,8 +6,6 @@ import (
 	"hrms-penguin/internal/cli"
 	"os"
 
-	_ "embed"
-
 	"github.com/charmbracelet/log"
 	"github.com/gen2brain/beeep"
 	"github.com/spf13/cobra"
@@ -21,9 +19,6 @@ var (
 
 	ErrConfigNotFound error = errors.New("secret not found in keyring")
 )
-
-//go:embed hrms-config.json
-var configStr []byte
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
