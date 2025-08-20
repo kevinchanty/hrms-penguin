@@ -346,7 +346,7 @@ func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
 		attendanceDataList = append(attendanceDataList, result.record...)
 	}
 
-	filterList := make([]AttendanceData, 0, len(attendanceDataList))
+	filteredList := make([]AttendanceData, 0, len(attendanceDataList))
 	for _, data := range attendanceDataList {
 		recordDate, err := time.Parse(time.DateOnly, data.DateStr)
 		if err != nil {
@@ -359,9 +359,9 @@ func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
 			continue
 		}
 
-		filterList = append(filterList, data)
+		filteredList = append(filteredList, data)
 	}
-	slices.SortFunc(filterList, func(a AttendanceData, b AttendanceData) int {
+	slices.SortFunc(filteredList, func(a AttendanceData, b AttendanceData) int {
 		if a.Date.Before(b.Date) {
 			return -1
 		} else {
@@ -369,8 +369,7 @@ func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
 		}
 	})
 
-	attendanceDataList = filterList
-	return attendanceDataList, nil
+	return filteredList, nil
 }
 
 type CreateLeaveApplicationRes struct {

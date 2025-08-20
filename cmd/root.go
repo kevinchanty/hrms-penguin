@@ -13,11 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	configName     string = ".hrms-penguin"
-	keyringService string = "hrms-penguin"
-)
-
 var (
 	enableDebugLog    bool
 	logPath           string
