@@ -40,7 +40,7 @@ var recentCmd = &cobra.Command{
 			if i == 0 {
 				fmt.Println("--------------------------------------------------")
 			}
-			fmt.Printf("%v %v %v %v", data.DateStr, data.Date.Weekday().String()[:3], data.OriginalInTimeStr, data.OriginalOutTimeStr)
+			fmt.Printf("%v %v %v %v", data.DateStr, data.Date.Format("Mon"), data.OriginalInTimeStr, data.OriginalOutTimeStr)
 
 			// 2025-08-29 Fri 09:57 18:35 LATE
 			if data.IsLate {
