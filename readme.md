@@ -3,10 +3,15 @@
 ## TO DO:
 
 - [x] Check attendance record
+  - [x] Basic
+  - [x] With leave application records
 - [x] Save Password safely in config
 - [x] Vacation Application
-- [ ] TUI with Charm
+- [ ] Clean up old struct with `UnmarshalJSON`
 
 ## Maybe DO:
-
-- Version Update Reminder
+- [ ] Proper docs
+- [ ] GitHub actions to build binaries
+  - [ ] Tag versioning
+  - [ ] Release notes
+- [ ] TUI with Charm
