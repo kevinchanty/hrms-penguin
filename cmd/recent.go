@@ -1,6 +1,3 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -39,13 +36,28 @@ var recentCmd = &cobra.Command{
 			logger.Fatalf("GetRecentAttendance fails: %v", err)
 		}
 
-		for _, data := range attendanceDataList {
+		for i, data := range attendanceDataList {
+			if i == 0 {
+				fmt.Println("--------------------------------------------------")
+			}
 			fmt.Printf("%v %v %v %v", data.DateStr, data.Date.Weekday().String()[:3], data.OriginalInTimeStr, data.OriginalOutTimeStr)
 
+			// 2025-08-29 Fri 09:57 18:35 LATE
 			if data.IsLate {
-				fmt.Print(" LATE\n")
+				fmt.Print(" LATE")
 			} else {
-				fmt.Print("\n")
+				fmt.Print("     ")
+			}
+
+			//2025-08-29 Fri 09:57 18:35 LATE LEAVE: 09:23-09:32 APPROVED
+			if data.LeaveApplicationRecord != nil {
+				fmt.Printf(" LEAVE: %s-%s", data.LeaveApplicationRecord.StartTime.Format("15:04"), data.LeaveApplicationRecord.EndTime.Format("15:04"))
+			}
+
+			fmt.Print("\n")
+
+			if (i == len(attendanceDataList)-1) || data.Date.Weekday() == 5 {
+				fmt.Println("--------------------------------------------------")
 			}
 		}
 	},

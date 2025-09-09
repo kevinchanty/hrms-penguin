@@ -310,9 +310,16 @@ func (c *HrmsClient) GetTodayAttendance() (AttendanceData, error) {
 
 }
 
-func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
+type RecentAttendanceData struct {
+	AttendanceData
+	LeaveApplicationRecord *LeaveApplicationData
+}
+
+// Get the recent attendance records and check if leave application exists
+func (c *HrmsClient) GetRecentAttendance() ([]RecentAttendanceData, error) {
 	currentTime := time.Now()
 	day := currentTime.Day()
+	// 15/08 - 14/09 : accounting month 9
 	var accountingMonths []time.Month
 
 	accountingMonths = append(accountingMonths, currentTime.Month())
@@ -329,7 +336,7 @@ func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
 	}
 
 	resultCh := make(chan fetchResult)
-	attendanceDataList := make([]AttendanceData, 0)
+	recentAttendanceDataList := make([]RecentAttendanceData, 0)
 
 	for _, month := range accountingMonths {
 		go func() {
@@ -343,25 +350,32 @@ func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
 		if result.err != nil {
 			return nil, result.err
 		}
-		attendanceDataList = append(attendanceDataList, result.record...)
+		for _, data := range result.record {
+			recentAttendanceDataList = append(recentAttendanceDataList, RecentAttendanceData{
+				AttendanceData: data,
+			})
+		}
 	}
 
-	filteredList := make([]AttendanceData, 0, len(attendanceDataList))
-	for _, data := range attendanceDataList {
+	if len(recentAttendanceDataList) == 0 {
+		return recentAttendanceDataList, nil
+	}
+
+	recentAttendanceDataList = slices.DeleteFunc(recentAttendanceDataList, func(data RecentAttendanceData) bool {
 		recordDate, err := time.Parse(time.DateOnly, data.DateStr)
 		if err != nil {
-			return nil, err
+			return true
 		}
 		if recordDate.After(time.Now()) {
-			continue
+			return true
 		}
 		if recordDate.Weekday() == 0 || recordDate.Weekday() == 6 {
-			continue
+			return true
 		}
+		return false
+	})
 
-		filteredList = append(filteredList, data)
-	}
-	slices.SortFunc(filteredList, func(a AttendanceData, b AttendanceData) int {
+	slices.SortFunc(recentAttendanceDataList, func(a RecentAttendanceData, b RecentAttendanceData) int {
 		if a.Date.Before(b.Date) {
 			return -1
 		} else {
@@ -369,48 +383,23 @@ func (c *HrmsClient) GetRecentAttendance() ([]AttendanceData, error) {
 		}
 	})
 
-	return filteredList, nil
-}
-
-type CreateLeaveApplicationRes struct {
-	Status string
-}
-
-func (c *HrmsClient) CreateLeaveApplication(startTime time.Time, endTime time.Time) error {
-	endpointUrl := fmt.Sprintf("%s/api/Leave/CreateLeave", c.host)
-
-	formData := url.Values{}
-	formData.Set("fldAttInOut", "VL")
-	formData.Set("fldFromDate", startTime.Format(time.DateOnly))
-	formData.Set("fldDateFromHour", startTime.Format("15"))
-	formData.Set("fldDateFromMin", startTime.Format("04"))
-	formData.Set("fldToDate", endTime.Format(time.DateOnly))
-	formData.Set("fldDateToHour", endTime.Format("15"))
-	formData.Set("fldDateToMin", endTime.Format("04"))
-	formData.Set("ReferenceDate", "")
-
-	c.logger.Debug("[CreateLeaveApplication] Posting CreateLeave...", "formData", formData)
-
-	res, err := c.httpClient.PostForm(endpointUrl, formData)
-	if err != nil || res.StatusCode != 200 {
-		return err
-	}
-
-	resStr, err := io.ReadAll(res.Body)
+	leaveApplicationRecords, err := c.FetchLeaveApplicationRecord(recentAttendanceDataList[0].DateStr, recentAttendanceDataList[len(recentAttendanceDataList)-1].DateStr, 1, 62)
 	if err != nil {
-		return err
+		return []RecentAttendanceData{}, fmt.Errorf("Failed to fetch leave application record: %w", err)
 	}
 
-	var createResponse CreateLeaveApplicationRes
-	err = json.Unmarshal(resStr, &createResponse)
-	if err != nil {
-		return err
+	leaveApplicationRecordMap := make(map[string]*LeaveApplicationData)
+	for _, record := range leaveApplicationRecords {
+		dateStr := record.StartTime.Format("2006-01-02")
+		leaveApplicationRecordMap[dateStr] = &record
 	}
 
-	if createResponse.Status == "fail" {
-		return fmt.Errorf("create leave fails, res: %+v", createResponse)
+	for i, data := range recentAttendanceDataList {
+		if leaveData, ok := leaveApplicationRecordMap[data.DateStr]; ok {
+			data.LeaveApplicationRecord = leaveData
+			recentAttendanceDataList[i] = data
+		}
 	}
-	defer res.Body.Close()
 
-	return nil
+	return recentAttendanceDataList, nil
 }
