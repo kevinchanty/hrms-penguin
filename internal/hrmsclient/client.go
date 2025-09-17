@@ -65,7 +65,7 @@ func (c *HrmsClient) Login() error {
 	formData.Set("fldEmpPwd", c.pwd)
 	formData.Set("code", "undefined")
 
-	c.logger.Debug("Posting Login...", "formData", formData)
+	c.logger.Debug("Posting Login...", "userName", c.userName)
 	res, err := c.httpClient.PostForm(fmt.Sprintf("%s/api/admin/login", c.host), formData)
 	if err != nil {
 		return err

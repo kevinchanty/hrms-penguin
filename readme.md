@@ -8,7 +8,7 @@
 - [x] Save Password safely in config
 - [x] Vacation Application
 - [ ] Clean up old struct with `UnmarshalJSON`
-- [ ] Remove logging pw :(
+- [x] Remove logging pw :(
 
 ## Maybe DO:
 - [ ] Proper docs
