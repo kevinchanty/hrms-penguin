@@ -14,8 +14,9 @@ import (
 var (
 	enableDebugLog    bool
 	logPath           string
-	enableNoti        bool
 	forcePromptConfig bool
+	enableNoti        bool
+	enableUglyPrint   bool
 
 	ErrConfigNotFound error = errors.New("secret not found in keyring")
 )
@@ -53,7 +54,11 @@ var rootCmd = &cobra.Command{
 		if enableNoti {
 			beeep.Notify("HRMS Penguin", fmt.Sprintf("Today's Attendance: %v %v %v\n", todayAttendance.DateStr, todayAttendance.OriginalInTimeStr, todayAttendance.OriginalOutTimeStr), "")
 		} else {
-			fmt.Printf("Today's Attendance: %v %v %v\n", todayAttendance.DateStr, todayAttendance.OriginalInTimeStr, todayAttendance.OriginalOutTimeStr)
+			if enableUglyPrint {
+				fmt.Printf("%v %v %v\n", todayAttendance.DateStr, todayAttendance.OriginalInTimeStr, todayAttendance.OriginalOutTimeStr)
+			} else {
+				fmt.Printf("Today's Attendance: %v %v %v\n", todayAttendance.DateStr, todayAttendance.OriginalInTimeStr, todayAttendance.OriginalOutTimeStr)
+			}
 		}
 	},
 }
@@ -70,6 +75,7 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&enableDebugLog, "debug", "d", false, "Enable debug logging")
 	rootCmd.PersistentFlags().StringVarP(&logPath, "log", "l", "", "Log file path")
-	rootCmd.PersistentFlags().BoolVarP(&enableNoti, "noti", "n", false, "Create push notification instead of print to stdOut")
 	rootCmd.PersistentFlags().BoolVarP(&forcePromptConfig, "prompt", "p", false, "Ignore saved config and prompt for new one")
+	rootCmd.Flags().BoolVarP(&enableNoti, "noti", "n", false, "Create push notification instead of print to stdOut")
+	rootCmd.Flags().BoolVarP(&enableUglyPrint, "ugly", "u", false, "Ugly print, useful for piping")
 }
